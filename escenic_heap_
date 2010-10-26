@@ -1,0 +1,191 @@
+#!/bin/bash
+
+#%# family=auto contrib
+#%# capabilities=autoconf suggest
+
+#
+# Parameters:
+#
+#  config
+#  autoconf
+#  suggest
+#
+# Config variables:
+#
+#  javabin      - path to java executable. Defaults to '/etc/alternatives/java'
+#  jstatbin     - path to jstat executable. Defaults to '/etc/alternatives/jstat'
+#  ece_instance - name of instance. Defaults to output of 'suggest'
+#  pidfile      - Override name of pidfile to use. Defaults to '/var/run/escenic/ece-${ece_instance}.pid'
+#
+javabin=${javabin:-/etc/alternatives/java}
+jstatbin=${jstatbin:-/etc/alternatives/jstat}
+tmp_ece_instance=$(echo $(basename $0) | sed s,escenic_heap_,,)
+ece_instance=${ece_instance:-${tmp_ece_instance}}
+tmp_pidfile="/var/run/escenic/ece-${ece_instance}.pid"
+pidfile=${pidfile:-${tmp_pidfile}}
+
+if [ -z "${graphtitle}" ]; then
+  graphtitle="${ece_instance}"
+fi
+
+chk_version()
+{
+  Version=$(${binjava} -fullversion 2>&1 | grep '^java full version' | awk '{print $4}' | sed -e 's/\"//g' | cut -d'_' -f 1)
+  if [ "${Version}" != "1.6.0" ]; then
+    return 1
+  else
+    return 0
+  fi
+}
+
+config()
+{
+  echo "graph_title Escenic Heap Usage $graphtitle"
+  echo "graph_args --base 1024 -l 0"
+  echo "graph_vlabel Heap Usage (Bytes)"
+  echo "graph_info Heap Usage split by different blocks of heap"
+  echo "graph_category Escenic"
+  echo "graph_order Eden_Used Survivor_Used Young_Free Old_Used Old_Free Permanent_Used Permanent_Free"
+
+  echo "Eden_Used.label Eden Used"
+  echo "Survivor_Used.label Survivor Used"
+  echo "Survivor0_Used.label Survivor0_Used"
+  echo "Survivor1_Used.label Survivor1_Used"
+  echo "Survivor_Used.cdef Survivor0_Used,Survivor1_Used,+"
+  echo "Young_Limit.label Young_Limit"
+  echo "Young_Free.label Young Free"
+  echo "Young_Free.cdef Young_Limit,Eden_Used,Survivor0_Used,Survivor1_Used,+,+,-"
+
+  echo "Eden_Used.colour 00cd00" # green3
+  echo "Survivor0_Used.colour 008b00"
+  echo "Survivor1_Used.colour 008b00" # green4
+  echo "Young_Free.colour f0f8ff" # alice blue
+
+  echo "Old_Used.label Old_Used"
+  echo "Old_Used.cdef Old_Used"
+  echo "Old_Free.label Old_Free"
+  echo "Old_Free.cdef Old_Limit,Old_Used,-"
+
+  echo "Old_Used.colour ff4040" # brown1
+  echo "Old_Free.colour f0f8ff" # AliceBlue
+
+  echo "Permanent_Used.label Permanent Used"
+  echo "Permanent_Free.label Permanent Free"
+  echo "Permanent_Free.cdef Permanent_Limit,Permanent_Used,-"
+
+  echo "Permanent_Used.colour ff7f00"
+  echo "Permanent_Free.colour f0f8ff"
+
+
+  echo "Eden_Used.draw AREA"
+  echo "Survivor0_Used.draw no"
+  echo "Survivor1_Used.draw no"
+  echo "Survivor_Used.draw STACK"
+  echo "Young_Limit.graph no"  # Don't show the "limit" as-is, since it's not useful.
+  echo "Young_Free.draw STACK"  # Should equate Young_limit always.
+
+  echo "Old_Limit.graph no"
+  echo "Old_Used.draw STACK"
+  echo "Old_Free.draw STACK"
+
+  echo "Permanent_Limit.graph no"
+  echo "Permanent_Used.draw STACK"
+  echo "Permanent_Free.draw STACK"
+}
+
+jstat()
+{
+${jstatbin} -gccapacity ${pid} | tail -n 1 | awk \
+'{\
+ //NGCMN    NGCMX     NGC     S0C   S1C       EC      OGCMN      OGCMX       OGC         OC      PGCMN    PGCMX     PGC       PC     YGC    FGC 
+ //21056.0 337216.0  41792.0 7552.0 8000.0  25792.0    42176.0   674496.0    73216.0    73216.0  21248.0  86016.0  75392.0  75392.0     72     3
+        NGCMX = $2; \
+        OGCMX = $8; \
+        PGCMX = $12; \
+	printf "Young_Limit.value %d\n", NGCMX * 1024; \
+	printf "Old_Limit.value %d\n", OGCMX * 1024; \
+	printf "Permanent_Limit.value %d\n", PGCMX * 1024; \
+}'
+
+${jstatbin} -gc ${pid} | tail -n 1 | awk \
+'{\
+	S0C = $1; \
+	S1C = $2; \
+	S0U = $3; \
+	S1U = $4; \
+	EC  = $5; \
+	EU  = $6; \
+	OC  = $7; \
+	OU  = $8; 
+	PC  = $9; \
+	PU  = $10; \
+	\
+	S0F = S0C - S0U; \
+	S1F = S1C - S1U; \
+	EF  = EC  - EU;  \
+	OF  = OC  - OU;  \
+	PF  = PC  - PU;  \
+	\
+	printf "Eden_Used.value %d\n",EU * 1024; \
+	printf "Survivor0_Used.value %d\n",S0U * 1024; \
+	printf "Survivor1_Used.value %d\n", S1U * 1024; \
+	printf "Old_Used.value %d\n", OU * 1024; \
+	printf "Permanent_Used.value %d\n", PU * 1024; \
+}'
+}
+
+#
+# autoconf
+#
+
+if [ "$1" = "autoconf" ]; then
+
+  if [ ! -x "${binjstat}" ]; then
+    echo "no (No jstat found)"
+    exit 0
+  fi
+
+  chk_version
+  if [ $? != 0 ]; then
+    echo "no (Java version is invalid)"
+    exit 0
+  fi
+
+  if [ "$(ls 2>/dev/null /var/run/escenic/ece-*.pid | wc -l)" == "0" ]; then
+    echo "no (No escenic pidfiles in /var/run/escenic/ece-*.pid)"
+    exit 0
+  fi
+
+  echo "yes"
+  exit 0
+fi
+
+
+#
+# suggest
+#
+
+if [ "$1" = "suggest" ]; then
+
+  for a in /var/run/escenic/ece-*.pid ; do
+    basename $a .pid | sed s/^ece-//
+  done
+
+  exit 0
+fi
+
+
+#
+# config
+#
+if [ "$1" = "config" ]; then
+  config
+  exit 0
+fi
+
+#
+# Main
+#
+pid=$(cat ${pidfile})
+
+jstat

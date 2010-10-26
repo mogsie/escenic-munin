@@ -143,8 +143,8 @@ config()
 
 
   echo "Eden_Used.draw AREA"
-  echo "Survivor0_Used.draw no"
-  echo "Survivor1_Used.draw no"
+  echo "Survivor0_Used.graph no"
+  echo "Survivor1_Used.graph no"
   echo "Survivor_Used.draw STACK"
   echo "Young_Limit.graph no"  # Don't show the "limit" as-is, since it's not useful.
   echo "Young_Free.draw STACK"  # Should equate Young_limit always.

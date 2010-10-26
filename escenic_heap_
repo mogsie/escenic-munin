@@ -107,11 +107,11 @@ fi
 
 config()
 {
-  echo "graph_title Escenic Heap Usage $graphtitle"
+  echo "graph_title $graphtitle Heap Usage"
   echo "graph_args --base 1024 -l 0"
-  echo "graph_vlabel Heap Usage (Bytes)"
+  echo "graph_vlabel bytes"
   echo "graph_info Heap Usage split by different blocks of heap" ${graph_info}
-  echo "graph_category Escenic ${ece_instance}"
+  echo "graph_category Escenic"
   echo "graph_update ${graph_update}"
   echo "graph_order Eden_Used Survivor_Used Young_Free Old_Used Old_Free Permanent_Used Permanent_Free"
 

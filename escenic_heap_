@@ -75,7 +75,7 @@ other locations, etc.
 
 
 graph_update=yes
-jstatbin=${jstatbin:-/etc/alternatives/jstat}
+jstatbin=${jstatbin:-$(which jstat)}
 tmp_ece_instance=$(echo $(basename $0) | sed s,escenic_heap_,,)
 ece_instance=${ece_instance:-${tmp_ece_instance}}
 tmp_pidfile="/var/run/escenic/ece-${ece_instance}.pid"

@@ -1,21 +1,76 @@
 #!/bin/bash
 
-#%# family=auto contrib
-#%# capabilities=autoconf suggest
+: <<=cut
+=head1 NAME
 
-#
-# Parameters:
-#
-#  config
-#  autoconf
-#  suggest
-#
-# Config variables:
-#
-#  jstatbin     - path to jstat executable. Defaults to '/etc/alternatives/jstat'
-#  ece_instance - name of instance. Defaults to output of 'suggest'
-#  pidfile      - Override name of pidfile to use. Defaults to '/var/run/escenic/ece-${ece_instance}.pid'
-#
+escenic_heap - Munin plugin to show the heap usage of instances of Escenic
+Content Engine
+
+=head1 APPLICABLE SYSTEMS
+
+escenic_heap works with all installations of Escenic Content Engine 5.1
+and onwards.  It uses the pidfiles located in /var/run/escenic/ to locate
+different instances of Content Engine and graphs their heaps individually.
+
+=head1 CONFIGURATION
+
+escenic_heap needs to know which instance it will run on.  Since 5.1,
+ECE out of the box allows easy configuration of several instances.  These
+end up putting their pidfiles in /var/run/escenic/ece-xxx.pid.  If you
+do not specify pidfiles, the instance name 'default' is used.
+
+The plugin uses the jstat utility from the JVM which it assumes is available
+under /etc/alternatives/jstat.  jstat itself must execute as the same user
+that owns the process being monitored, which means that the plugin itself
+must be run as that user.
+
+   [escenic_heap_*]
+         user escenic
+=head1 INTERPRETATION
+
+The graph itself tries to visualize the entire heap in three distinct areas:
+
+The bottom area (green) indicates the size of the young generation, which
+consists of "eden", "survivor0" and "survivor1".
+
+The middle area (red) indicates the size of the old generation, which
+consists of objects that survived being in the young generation for a while.
+
+The top area (orange) indicates the size of the permanent generation, which
+consists of classes and other things.
+
+The -Xmx parameter controls the size of the young and the old generation, so
+the top of the free space of the old generation should correspond exactly
+with the value of -XMx.  The capacity of the permanent generation is usually
+controlled via the proprietary -XX:MaxPermSize parameter.
+
+The graph
+
+=head1 MAGIC MARKERS
+
+    #%# family=auto contrib
+    #%# capabilities=autoconf suggest
+
+=head1 CONFIGURATION
+
+There are a few options that can be specified to control how a particular
+instance of this works, if you run a non-standard setup, e.g. pidfiles in
+other locations, etc.
+
+    jstatbin     - path to jstat executable. Defaults to
+                   '/etc/alternatives/jstat'
+
+    ece_instance - name of instance. Defaults to output of 'suggest'
+                   The instance names is used to group and title graphs,
+                   and to locate the pidfile
+
+    pidfile      - Override name of pidfile to use. Defaults to
+                   '/var/run/escenic/ece-${ece_instance}.pid'
+
+    graphtitle   - if unspecified, the graph title is appended with the
+                   name of the instance.
+
+=cut
 
 jstatbin=${jstatbin:-/etc/alternatives/jstat}
 tmp_ece_instance=$(echo $(basename $0) | sed s,escenic_heap_,,)
@@ -33,7 +88,7 @@ config()
   echo "graph_args --base 1024 -l 0"
   echo "graph_vlabel Heap Usage (Bytes)"
   echo "graph_info Heap Usage split by different blocks of heap"
-  echo "graph_category Escenic"
+  echo "graph_category Escenic ${ece_instance}"
   echo "graph_order Eden_Used Survivor_Used Young_Free Old_Used Old_Free Permanent_Used Permanent_Free"
 
   echo "Eden_Used.label Eden Used"
@@ -46,8 +101,7 @@ config()
   echo "Young_Free.cdef Young_Limit,Eden_Used,Survivor0_Used,Survivor1_Used,+,+,-"
 
   echo "Eden_Used.colour 00cd00" # green3
-  echo "Survivor0_Used.colour 008b00"
-  echo "Survivor1_Used.colour 008b00" # green4
+  echo "Survivor_Used.colour 008b00" # green4
   echo "Young_Free.colour f0f8ff" # alice blue
 
   echo "Old_Used.label Old_Used"

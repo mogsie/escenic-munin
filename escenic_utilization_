@@ -1,0 +1,139 @@
+#!/bin/bash
+
+: <<=cut
+=head1 NAME
+
+escenic_utilization - Munin plugin to show the utilization factor of an
+Escenic Content Engine instance
+
+=head1 APPLICABLE SYSTEMS
+
+escenic_utilization works with all installations of Escenic Content Engine
+5.1 and onwards.  It uses the pidfiles located in /var/run/escenic/ to
+locate different instances of Content Engine and graphs their utilization
+individually.
+
+=head1 CONFIGURATION
+
+escenic_utilization needs to know which instance it will run on.  Since 5.1,
+ECE out of the box allows easy configuration of several instances.  These
+end up putting their pidfiles in /var/run/escenic/ece-xxx.pid.  If you
+do not specify pidfiles, the instance name 'default' is used.
+
+The plugin needs to access the escenic-admin webapp in order to retrieve
+the utilization, and in order to get that it uses HTTP.  Please specify the
+port number on which the escenic-admin webapp is mounted, for each instance
+on the machine.  If, for example, your instance name is 'default' then add
+the following configration:
+
+   [escenic_utilization_default]
+   env.port=8080
+
+=head1 INTERPRETATION
+
+The graph shows the number of concurrent accesses to the HTTP stack at
+any one time, as made available by the "top" resource in Escenic Content
+Engine.
+
+A value of 0 means that the instance is idle.
+A value of 4 means that the instance was processing four concurrent HTTP
+requests at the same time.
+
+=head1 MAGIC MARKERS
+
+    #%# family=manual contrib
+    #%# capabilities=autoconf suggest
+
+=head1 CONFIGURATION
+
+There are a few options that can be specified to control how a particular
+instance of this works, particularly you need to indicate the port number
+where the escenic-admin web app is located.
+
+    port         - port number where escenic-admin is available,
+                   no default.  Try 8080 :-).
+
+    ece_instance - name of instance. Defaults to output of 'suggest'
+                   The instance names is used to name the graphs.
+
+    graphtitle   - if unspecified, the graph title is prepended with the
+                   name of the instance.
+
+=cut
+
+
+graph_update=yes
+tmp_ece_instance=$(echo $(basename $0) | sed s,escenic_utilization_,,)
+ece_instance=${ece_instance:-${tmp_ece_instance}}
+if [ -z "${port}" ]; then
+  graph_info="${graph_info} In order to use this plug-in you need to configure 'env.port' in the [escenic_utilization_${ece_instance}] somewhere in /etc/munin/plugin-conf.d/"
+  graph_update=no
+fi
+
+if [ -z "${graphtitle}" ]; then
+  graphtitle="${ece_instance}"
+fi
+
+config()
+{
+  echo "graph_title $graphtitle Utilization "
+  echo "graph_args --base 1000 -l 0"
+  echo "graph_vlabel threads"
+  echo "graph_info The load excherted on an Escenic instance by its HTTP interfaces, counted as the number of threads. " ${graph_info}
+  echo "graph_category Escenic"
+  echo "graph_update ${graph_update}"
+     cat <<EOM
+utilization.draw LINE1
+utilization.label Utilization
+utilization.info Snapshot of load the past two seconds. 1.0 means one thread was active.
+utilization.warning 4
+utilization.critical 50
+utilization.cdef utilization,100,/
+
+EOM
+}
+
+#
+# autoconf
+#
+
+if [ "$1" = "autoconf" ]; then
+
+  if [ "$(ls 2>/dev/null /var/run/escenic/ece-*.pid | wc -l)" == "0" ]; then
+    echo "no (No escenic pidfiles in /var/run/escenic/ece-*.pid)"
+    exit 0
+  fi
+
+  echo "yes"
+  exit 0
+fi
+
+
+#
+# suggest
+#
+
+if [ "$1" = "suggest" ]; then
+
+  for a in /var/run/escenic/ece-*.pid ; do
+    basename $a .pid | sed s/^ece-//
+  done
+
+  exit 0
+fi
+
+
+#
+# config
+#
+if [ "$1" = "config" ]; then
+  config
+  exit 0
+fi
+
+#
+# fetch
+#
+
+wget -O - -o /dev/null http://localhost:${port}/escenic-admin/top | awk 'BEGIN{a=0} /[1-9]/ { a=a+$1} END { print "utilization.value " a }'
+

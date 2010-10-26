@@ -26,6 +26,7 @@ must be run as that user.
 
    [escenic_heap_*]
          user escenic
+
 =head1 INTERPRETATION
 
 The graph itself tries to visualize the entire heap in three distinct areas:
@@ -72,11 +73,31 @@ other locations, etc.
 
 =cut
 
+
+graph_update=yes
 jstatbin=${jstatbin:-/etc/alternatives/jstat}
 tmp_ece_instance=$(echo $(basename $0) | sed s,escenic_heap_,,)
 ece_instance=${ece_instance:-${tmp_ece_instance}}
 tmp_pidfile="/var/run/escenic/ece-${ece_instance}.pid"
 pidfile=${pidfile:-${tmp_pidfile}}
+
+if [ ! -r "$jstatbin" ] ; then
+  graph_info="$graph_info NOTE: jstat ($jstatbin) is not executable, so I can't output a graph."
+  graph_update=no
+fi
+
+if [ ! -r "$pidfile" ] ; then
+  graph_info="$graph_info NOTE: pidfile $pidfile is not readable, so I can't output a graph."
+  graph_update=no
+fi
+
+owner_uid="$[$(ps -o uid= $(cat ${pidfile}))]"
+my_id="$[$(id -u)]"
+
+if [ "$my_id" == "0" -o "$owner_uid" != "$my_id" ] ; then
+  graph_info="$graph_info NOTE: pid is owned by a different user ${owner_uid} than me ${my_id}.  So I can't run jstat to talk to it."
+  graph_update=no
+fi
 
 if [ -z "${graphtitle}" ]; then
   graphtitle="${ece_instance}"
@@ -87,8 +108,9 @@ config()
   echo "graph_title Escenic Heap Usage $graphtitle"
   echo "graph_args --base 1024 -l 0"
   echo "graph_vlabel Heap Usage (Bytes)"
-  echo "graph_info Heap Usage split by different blocks of heap"
+  echo "graph_info Heap Usage split by different blocks of heap" ${graph_info}
   echo "graph_category Escenic ${ece_instance}"
+  echo "graph_update ${graph_update}"
   echo "graph_order Eden_Used Survivor_Used Young_Free Old_Used Old_Free Permanent_Used Permanent_Free"
 
   echo "Eden_Used.label Eden Used"

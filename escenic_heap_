@@ -91,12 +91,14 @@ if [ ! -r "$pidfile" ] ; then
   graph_update=no
 fi
 
-owner_uid="$[$(ps -o uid= $(cat ${pidfile}))]"
-my_id="$[$(id -u)]"
+if [ -r "${pidfile}" ] ; then
+  owner_uid="$[$(ps -o uid= $(cat ${pidfile}))]"
+  my_id="$[$(id -u)]"
 
-if [ "$my_id" == "0" -o "$owner_uid" != "$my_id" ] ; then
-  graph_info="$graph_info NOTE: pid is owned by a different user ${owner_uid} than me ${my_id}.  So I can't run jstat to talk to it."
-  graph_update=no
+  if [ "$my_id" == "0" -o "$owner_uid" != "$my_id" ] ; then
+    graph_info="$graph_info NOTE: pid is owned by a different user ${owner_uid} than me ${my_id}.  So I can't run jstat to talk to it."
+    graph_update=no
+  fi
 fi
 
 if [ -z "${graphtitle}" ]; then

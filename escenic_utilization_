@@ -81,7 +81,7 @@ config()
   echo "graph_vlabel threads"
   echo "graph_info The load excherted on an Escenic instance by its HTTP interfaces, counted as the number of threads. " ${graph_info}
   echo "graph_category Escenic"
-  echo "graph_update ${graph_update}"
+  echo "update ${graph_update}"
      cat <<EOM
 utilization.draw LINE1
 utilization.label Utilization

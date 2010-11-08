@@ -112,7 +112,7 @@ config()
   echo "graph_vlabel bytes"
   echo "graph_info Heap Usage split by different blocks of heap" ${graph_info}
   echo "graph_category Escenic"
-  echo "graph_update ${graph_update}"
+  echo "update ${graph_update}"
   echo "graph_order Eden_Used Survivor_Used Young_Free Old_Used Old_Free Permanent_Used Permanent_Free"
 
   echo "Eden_Used.label Eden Used"

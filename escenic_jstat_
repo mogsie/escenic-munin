@@ -125,13 +125,14 @@ config_uptime()
 
   echo "Uptime.label Uptime"
   echo "Uptime.draw AREA"
-  echo "Uptime.info Uptime of the java process"
+  echo "Uptime.info Uptime (in days) of the java process"
 }
 
 config_gc()
 {
   echo "graph_title $graphtitle garbage collector"
   echo "graph_args -l 0"
+  echo "graph_period minute"
   echo "graph_vlabel garbage collections"
   echo "graph_info The number of garbage collections per minute. " ${graph_info}
   echo "graph_category Escenic"
@@ -140,10 +141,12 @@ config_gc()
 
   echo "Young_Count.label Young collections"
   echo "Young_Count.draw AREA"
+  echo "Young_Count.type COUNTER"
   echo "Young_Count.info Number of young collections per minute"
 
   echo "Old_Count.label Old collections"
   echo "Old_Count.draw STACK"
+  echo "Old_Count.type COUNTER"
   echo "Old_Count.info Number of old collections per minute"
 }
 

@@ -137,17 +137,17 @@ config_gc()
   echo "graph_info The number of garbage collections per minute. " ${graph_info}
   echo "graph_category Escenic"
   echo "update no"  # this graph only loans from the heap graph...
-  echo "graph_order Young_Count=escenic_jstat_${ece_instance}_heap.Young_Count Old_Count=escenic_jstat_${ece_instance}_heap.Old_Count"
+  echo "graph_order Young_Count=escenic_jstat_${ece_instance}_heap.Young_Count Full_Count=escenic_jstat_${ece_instance}_heap.Full_Count"
 
-  echo "Young_Count.label Young collections"
+  echo "Young_Count.label Young_Count"
   echo "Young_Count.draw AREA"
   echo "Young_Count.type COUNTER"
   echo "Young_Count.info Number of young collections per minute"
 
-  echo "Old_Count.label Old collections"
-  echo "Old_Count.draw STACK"
-  echo "Old_Count.type COUNTER"
-  echo "Old_Count.info Number of old collections per minute"
+  echo "Full_Count.label Full_Count"
+  echo "Full_Count.draw STACK"
+  echo "Full_Count.type COUNTER"
+  echo "Full_Count.info Number of full collections per minute"
 }
 
 config_heap()
@@ -262,8 +262,8 @@ ${jstatbin} -gc -t ${pid} | tail -n 1 | awk \
 	printf "Permanent_Used.value %d\n", PU * 1024; \
 	printf "Young_Count.value %d\n", YGC; \
 	printf "Full_Count.value %d\n", FGC; \
-	printf "Young_Time.value %f\n", YGCT; \
-	printf "Full_Time.value %f\n", FGCT; \
+	printf "Young_Time.value %.2f\n", YGCT; \
+	printf "Full_Time.value %.2f\n", FGCT; \
 	printf "Uptime.value %.2f\n", UPTIME/86400; \
 }'
 
@@ -322,7 +322,7 @@ fi
 #
 # config
 #
-if [ "$1" = "config" ]; then
+if [ "$1" == "config" ] ; then
   config_${graph}
   exit 0
 fi
@@ -331,6 +331,8 @@ fi
 # Main
 #
 pid=$(cat ${pidfile})
-echo '#' $pid
+# echo '#' $pid
 
-jstat
+if [ "${graph}" == "heap" ] ; then
+  jstat
+fi

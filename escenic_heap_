@@ -168,12 +168,23 @@ config()
   echo "Permanent_Free.cdef Permanent_Limit,Permanent_Used,-"
   #echo "Permanent_Limit.cdef"
 
+  echo "Young_Count.label Young_Count"
+  echo "Young_Count.graph no"
+  echo "Full_Count.label Full_Count"
+  echo "Full_Count.graph no"
+  echo "Young_Time.label Young_Time"
+  echo "Young_Time.graph no"
+  echo "Full_Time.label Full_Time"
+  echo "Full_Time.graph no"
 }
 
 jstat()
 {
 ${jstatbin} -gc ${pid} | tail -n 1 | awk \
 '{\
+    // S0C    S1C    S0U    S1U      EC       EU        OC         OU       PC     PU    YGC     YGCT    FGC    FGCT     GCT   
+    // 512.0  512.0   0.0   160.0   5888.0   1163.4   88704.0    48433.9   80896.0 79993.8   2181    9.993  36     12.682   22.674
+
 	S0C = $1; \
 	S1C = $2; \
 	S0U = $3; \
@@ -184,6 +195,10 @@ ${jstatbin} -gc ${pid} | tail -n 1 | awk \
 	OU  = $8; 
 	PC  = $9; \
 	PU  = $10; \
+        YGC = $11; \
+        YGCT = $12; \
+        FGC = $13; \
+        FGCT = $14; \
 	\
 	S0F = S0C - S0U; \
 	S1F = S1C - S1U; \
@@ -196,6 +211,10 @@ ${jstatbin} -gc ${pid} | tail -n 1 | awk \
 	printf "Survivor1_Used.value %d\n", S1U * 1024; \
 	printf "Old_Used.value %d\n", OU * 1024; \
 	printf "Permanent_Used.value %d\n", PU * 1024; \
+	printf "Young_Count.value %d\n", YGC; \
+	printf "Full_Count.value %d\n", FGC; \
+	printf "Young_Time.value %d\n", YGCT; \
+	printf "Full_Time.value %d\n", YGCT; \
 }'
 
 ${jstatbin} -gccapacity ${pid} | tail -n 1 | awk \
@@ -240,7 +259,9 @@ fi
 if [ "$1" = "suggest" ]; then
 
   for a in /var/run/escenic/ece-*.pid ; do
-    basename $a .pid | sed s/^ece-//
+    ece_instance=$(basename $a .pid | sed s/^ece-//)
+    echo ${ece_instance}_heap
+    echo ${ece_instance}_gc
   done
 
   exit 0

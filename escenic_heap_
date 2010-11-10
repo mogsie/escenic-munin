@@ -113,67 +113,65 @@ config()
   echo "graph_info Heap Usage split by different blocks of heap" ${graph_info}
   echo "graph_category Escenic"
   echo "update ${graph_update}"
-  echo "graph_order Eden_Used Survivor_Used Young_Free Old_Used Old_Free Permanent_Used Permanent_Free"
+  echo "graph_order Eden_Used Survivor0_Used Survivor1_Used Survivor_Used Young_Limit Young_Free Old_Used Old_Limit Old_Free Permanent_Used Permanent_Limit Permanent_Free"
 
-  echo "Eden_Used.label Eden Used"
-  echo "Survivor_Used.label Survivor Used"
+  echo "Eden_Used.label Eden_Used"
+  echo "Eden_Used.draw AREA"
+  echo "Eden_Used.info New objects are always allocated here"
+  echo "Eden_Used.colour 00cd00" # green3
+
   echo "Survivor0_Used.label Survivor0_Used"
+  echo "Survivor0_Used.graph no"
+
   echo "Survivor1_Used.label Survivor1_Used"
+  echo "Survivor1_Used.graph no"
+
+  echo "Survivor_Used.label Survivor_Used"
+  echo "Survivor_Used.draw STACK"
+  echo "Survivor_Used.colour 008b00" # green4
+  echo "Survivor_Used.info When Eden is full, Eden is garbage collected and survivors are placed in the Survivor area"
   echo "Survivor_Used.cdef Survivor0_Used,Survivor1_Used,+"
+
   echo "Young_Limit.label Young_Limit"
-  echo "Young_Free.label Young Free"
+  echo "Young_Limit.graph no"  # Don't show the "limit" as-is, since it's not useful.
+
+  echo "Young_Free.label Young_Free"
+  echo "Young_Free.draw STACK"  # Should equate Young_limit always.
+  echo "Young_Free.colour f0f8ff" # alice blue
   echo "Young_Free.cdef Young_Limit,Eden_Used,Survivor0_Used,Survivor1_Used,+,+,-"
 
-  echo "Eden_Used.colour 00cd00" # green3
-  echo "Survivor_Used.colour 008b00" # green4
-  echo "Young_Free.colour f0f8ff" # alice blue
-
   echo "Old_Used.label Old_Used"
-  echo "Old_Used.cdef Old_Used"
+  echo "Old_Used.draw STACK"
+  echo "Old_Used.colour ff4040" # brown1
+  echo "Old_Used.info When Survivor is full, Survivor is garbage collected and survivors are placed in the Old area"
+
+  echo "Old_Limit.label Old_Limit"
+  echo "Old_Limit.graph no"
+
   echo "Old_Free.label Old_Free"
+  echo "Old_Free.draw STACK"
+  echo "Old_Free.colour f0f8ff" # AliceBlue
   echo "Old_Free.cdef Old_Limit,Old_Used,-"
 
-  echo "Old_Used.colour ff4040" # brown1
-  echo "Old_Free.colour f0f8ff" # AliceBlue
+  echo "Permanent_Limit.label Permanent_Limit"
+  echo "Permanent_Limit.graph no"
 
   echo "Permanent_Used.label Permanent Used"
-  echo "Permanent_Free.label Permanent Free"
-  echo "Permanent_Free.cdef Permanent_Limit,Permanent_Used,-"
-
+  echo "Permanent_Used.draw STACK"
   echo "Permanent_Used.colour ff7f00"
+  echo "Permanent_Used.info Permanent space is only used for permanent type objects, like class loaders, classes and so on."
+
+  echo "Permanent_Free.label Permanent Free"
+  echo "Permanent_Free.draw STACK"
   echo "Permanent_Free.colour f0f8ff"
 
+  echo "Permanent_Free.cdef Permanent_Limit,Permanent_Used,-"
+  #echo "Permanent_Limit.cdef"
 
-  echo "Eden_Used.draw AREA"
-  echo "Survivor0_Used.graph no"
-  echo "Survivor1_Used.graph no"
-  echo "Survivor_Used.draw STACK"
-  echo "Young_Limit.graph no"  # Don't show the "limit" as-is, since it's not useful.
-  echo "Young_Free.draw STACK"  # Should equate Young_limit always.
-
-  echo "Old_Limit.graph no"
-  echo "Old_Used.draw STACK"
-  echo "Old_Free.draw STACK"
-
-  echo "Permanent_Limit.graph no"
-  echo "Permanent_Used.draw STACK"
-  echo "Permanent_Free.draw STACK"
 }
 
 jstat()
 {
-${jstatbin} -gccapacity ${pid} | tail -n 1 | awk \
-'{\
- //NGCMN    NGCMX     NGC     S0C   S1C       EC      OGCMN      OGCMX       OGC         OC      PGCMN    PGCMX     PGC       PC     YGC    FGC 
- //21056.0 337216.0  41792.0 7552.0 8000.0  25792.0    42176.0   674496.0    73216.0    73216.0  21248.0  86016.0  75392.0  75392.0     72     3
-        NGCMX = $2; \
-        OGCMX = $8; \
-        PGCMX = $12; \
-	printf "Young_Limit.value %d\n", NGCMX * 1024; \
-	printf "Old_Limit.value %d\n", OGCMX * 1024; \
-	printf "Permanent_Limit.value %d\n", PGCMX * 1024; \
-}'
-
 ${jstatbin} -gc ${pid} | tail -n 1 | awk \
 '{\
 	S0C = $1; \
@@ -199,6 +197,19 @@ ${jstatbin} -gc ${pid} | tail -n 1 | awk \
 	printf "Old_Used.value %d\n", OU * 1024; \
 	printf "Permanent_Used.value %d\n", PU * 1024; \
 }'
+
+${jstatbin} -gccapacity ${pid} | tail -n 1 | awk \
+'{\
+ //NGCMN    NGCMX     NGC     S0C   S1C       EC      OGCMN      OGCMX       OGC         OC      PGCMN    PGCMX     PGC       PC     YGC    FGC 
+ //21056.0 337216.0  41792.0 7552.0 8000.0  25792.0    42176.0   674496.0    73216.0    73216.0  21248.0  86016.0  75392.0  75392.0     72     3
+        NGCMX = $2; \
+        OGCMX = $8; \
+        PGCMX = $12; \
+	printf "Young_Limit.value %d\n", NGCMX * 1024; \
+	printf "Old_Limit.value %d\n", OGCMX * 1024; \
+	printf "Permanent_Limit.value %d\n", PGCMX * 1024; \
+}'
+
 }
 
 #

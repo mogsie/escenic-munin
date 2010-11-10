@@ -261,7 +261,7 @@ ${jstatbin} -gc -t ${pid} | tail -n 1 | awk \
 	printf "Full_Count.value %d\n", FGC; \
 	printf "Young_Time.value %f\n", YGCT; \
 	printf "Full_Time.value %f\n", FGCT; \
-	printf "Uptime.value %d\n", UPTIME; \
+	printf "Uptime.value %.2f\n", UPTIME/86400; \
 }'
 
 ${jstatbin} -gccapacity ${pid} | tail -n 1 | awk \

@@ -122,11 +122,10 @@ config_uptime()
   echo "graph_info Uptime as reported by jstat. " ${graph_info}
   echo "graph_category Escenic"
   echo "update no"  # this graph only loans from the heap graph...
-  echo "graph_order Uptime=escenic_jstat_${ece_instance}_heap.Uptime"
+  echo "graph_order uptime=escenic_jstat_${ece_instance}_heap.Uptime"
 
-  echo "Uptime.label Uptime"
-  echo "Uptime.draw AREA"
-  echo "Uptime.info Uptime (in days) of the java process"
+  echo "uptime.draw AREA"
+  echo "uptime.info Uptime of the java process in days"
 }
 
 config_gc()
@@ -139,45 +138,46 @@ config_gc()
   echo "graph_info The number of garbage collections per \${graph_period}. " ${graph_info}
   echo "graph_category Escenic"
   echo "update no"  # this graph only loans from the heap graph...
-  echo "graph_order Young_Count=escenic_jstat_${ece_instance}_heap.Young_Count Full_Count=escenic_jstat_${ece_instance}_heap.Full_Count"
+  echo "graph_order young=escenic_jstat_${ece_instance}_heap.Young_Count full=escenic_jstat_${ece_instance}_heap.Full_Count"
 
-  echo "Young_Count.label Young_Count"
-  echo "Young_Count.draw LINE"
-  echo "Young_Count.type DERIVE"
-  echo "Young_Count.min 0"
-  echo "Young_Count.info Number of young collections per \${graph_period}"
+# Labels on borrowed things are bad for munin
+#  echo "Young.label Young_Count"
+  echo "young.draw LINE2"
+  echo "young.type DERIVE"
+  echo "young.min 0"
+  echo "young.info The rate of young collections.  Young collections collect the eden and usually execute extremely quickly.  Young collections happen asynchronously and don't "
 
-  echo "Full_Count.label Full_Count"
-  echo "Full_Count.draw LINE"
-  echo "Full_Count.type DERIVE"
-  echo "Full_Count.min 0"
-  echo "Full_Count.info Number of full collections per \${graph_period}"
+#  echo "Full.label Full_Count"
+  echo "full.draw LINE1"
+  echo "full.type DERIVE"
+  echo "full.min 0"
+  echo "full.info The rate of full collections."
 }
 
 config_gcoverhead()
 {
   echo "graph_title $graphtitle memory gc overhead"
-  echo "graph_args --lower-limit 0 --upper-limit 100"
+  echo "graph_args --base 1000 --lower-limit 0" # --upper-limit 1000000"
   echo "graph_scale no" # Use 0.001 or 1200.
-  echo "graph_vlabel % GC overhead (low is good)"
-  echo "graph_info The percentage of time spent in garbage collection " ${graph_info}
+  echo "graph_vlabel GC overhead (per million)"
+  echo "graph_info The amount of time spent in garbage collection.  The measurement is in parts per million, since the value should usually be quite low, typically in the range 1 to 10.  A value of 1 means that one millionth of the time is spent garbage collecting." ${graph_info}
   echo "graph_category Escenic"
   echo "update no"  # this graph only loans from the heap graph...
-  echo "graph_order Young_Time_millis=escenic_jstat_${ece_instance}_heap.Young_Time_millis Full_Time_millis=escenic_jstat_${ece_instance}_heap.Full_Time_millis"
+  echo "graph_order young=escenic_jstat_${ece_instance}_heap.Young_Time_millis full=escenic_jstat_${ece_instance}_heap.Full_Time_millis"
 
-  echo "Young_Time_millis.label Young_Time_millis"
-  echo "Young_Time_millis.draw AREA"
-  echo "Young_Time_millis.type DERIVE"
-  echo "Young_Time_millis.min 0"
-  echo "Young_Time_millis.cdef Young_Time_millis,300000,/,100,*"
-  echo "Young_Time_millis.info Young GC overhead in %"
+#  echo "young.label Young_Time_millis"
+  echo "young.draw AREA"
+  echo "young.type DERIVE"
+  echo "young.min 0"
+  echo "young.cdef young,30,/,100,*"
+  echo "young.info time spent (in parts per million) doing young generation garbage collection.  These collections are done incrementally and asynchronously.  The only overhead is raw CPU usage."
 
-  echo "Full_Time_millis.label Full_Time_millis"
-  echo "Full_Time_millis.draw STACK"
-  echo "Full_Time_millis.type DERIVE"
-  echo "Full_Time_millis.min 0"
-  echo "Full_Time_millis.cdef Full_Time_millis,300000,/,100,*" # 1000 (millis) * 60 (minute) * 5 (munin graph period) = 300000. 
-  echo "Full_Time_millis.info Full GC overhead in %"
+#  echo "full.label Full_Time_millis"
+  echo "full.draw AREA"
+  echo "full.type DERIVE"
+  echo "full.min 0"
+  echo "full.cdef full,30,/,100,*" # 1000 (millis) * 60 (minute) * 5 (munin graph period) = 300000 ms per 5minute period.  Then / 1000 = 30, which gives parts per million. 
+  echo "full.info time spent (in parts per million) doing full generation garbage collection.  These collections are stop-the-world collections and cause latency spikes."
 }
 
 config_heap()
@@ -242,13 +242,14 @@ config_heap()
   echo "Permanent_Free.colour f0f8ff"
 
   echo "Permanent_Free.cdef Permanent_Limit,Permanent_Used,-"
-  #echo "Permanent_Limit.cdef"
 
   echo "Young_Count.label Young_Count"
   echo "Young_Count.type DERIVE"
+  echo "Young_Count.draw AREA"
   echo "Young_Count.graph no"
   echo "Full_Count.label Full_Count"
   echo "Full_Count.type DERIVE"
+  echo "Full_Count.draw STACK"
   echo "Full_Count.graph no"
   echo "Young_Time_millis.label Young_Time_millis"
   echo "Young_Time_millis.type DERIVE"
@@ -258,6 +259,8 @@ config_heap()
   echo "Full_Time_millis.graph no"
 
   echo "Uptime.label Uptime"
+  echo "Uptime.info The current uptime (in days) as reported by jstat -t"
+  echo "Uptime.draw AREA"
   echo "Uptime.graph no"
 }
 

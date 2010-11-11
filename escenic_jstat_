@@ -143,10 +143,14 @@ config_gc()
 
   echo "Young_Count.label Young_Count"
   echo "Young_Count.draw LINE"
+  echo "Young_Count.type DERIVE"
+  echo "Young_Count.min 0"
   echo "Young_Count.info Number of young collections per \${graph_period}"
 
   echo "Full_Count.label Full_Count"
   echo "Full_Count.draw LINE"
+  echo "Full_Count.type DERIVE"
+  echo "Full_Count.min 0"
   echo "Full_Count.info Number of full collections per \${graph_period}"
 }
 
@@ -163,11 +167,15 @@ config_gcoverhead()
 
   echo "Young_Time_millis.label Young_Time_millis"
   echo "Young_Time_millis.draw AREA"
+  echo "Young_Time_millis.type DERIVE"
+  echo "Young_Time_millis.min 0"
   echo "Young_Time_millis.cdef Young_Time_millis,300000,/,100,*"
   echo "Young_Time_millis.info Young GC overhead in %"
 
   echo "Full_Time_millis.label Full_Time_millis"
   echo "Full_Time_millis.draw STACK"
+  echo "Full_Time_millis.type DERIVE"
+  echo "Full_Time_millis.min 0"
   echo "Full_Time_millis.cdef Full_Time_millis,300000,/,100,*" # 1000 (millis) * 60 (minute) * 5 (munin graph period) = 300000. 
   echo "Full_Time_millis.info Full GC overhead in %"
 }
@@ -177,7 +185,8 @@ config_heap()
   echo "graph_title $graphtitle memory"
   echo "graph_args --base 1024 -l 0"
   echo "graph_vlabel bytes"
-  echo "graph_info Heap Usage split by different blocks of heap" ${graph_info}
+  echo "graph_period minute" # this propagates to where the values are used (I hope)
+  echo "graph_info Heap Usage split by different blocks of heap." ${graph_info}
   echo "graph_category Escenic"
   echo "update ${graph_update}"
   echo "graph_order Eden_Used Survivor0_Used Survivor1_Used Survivor_Used Young_Limit Young_Free Old_Used Old_Limit Old_Free Permanent_Used Permanent_Limit Permanent_Free"

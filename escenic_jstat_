@@ -42,7 +42,7 @@ The middle area (red) indicates the size of the old generation, which
 consists of objects that survived being in the young generation for a while.
 Stacked on top of that is again the unused portion of the old generation.
 
-The top area (orange) indicates the size of the permanent generation, which
+The top area (blue) indicates the size of the permanent generation, which
 consists of classes and other things.
 
 The -Xmx parameter controls the size of the young and the old generation, so
@@ -140,7 +140,7 @@ config_uptime()
   echo "update no"  # this graph only loans from the heap graph...
   echo "graph_order uptime=escenic_jstat_${ece_instance}_heap.Uptime"
 
-  if [ "${borrowed_labels}" ] ; then
+  if [ "${borrowed_labels}" == "1" ] ; then
     echo "uptime.label Uptime"
   fi
   echo "uptime.draw AREA"
@@ -149,7 +149,7 @@ config_uptime()
 
 config_gc()
 {
-  echo "graph_title $graphtitle memory gc"
+  echo "graph_title $graphtitle memory: Garbage collection frequency"
   echo "graph_args -l 0"
   echo "graph_scale no" # Use 0.001 or 1200.
   echo "graph_period minute"
@@ -160,7 +160,7 @@ config_gc()
   echo "graph_order young=escenic_jstat_${ece_instance}_heap.Young_Count full=escenic_jstat_${ece_instance}_heap.Full_Count"
 
 # Labels on borrowed things are bad for munin < 1.3
-  if [ "${borrowed_labels}" ] ; then
+  if [ "${borrowed_labels}" == "1" ] ; then
     echo "young.label Young collections"
   fi
   echo "young.draw LINE2"
@@ -168,7 +168,7 @@ config_gc()
   echo "young.min 0"
   echo "young.info The rate of young collections.  Young collections collect the eden and usually execute extremely quickly. Young collections happen asynchronously and don't adversely affect the performance of the JVM."
 
-  if [ "${borrowed_labels}" ] ; then
+  if [ "${borrowed_labels}" == "1" ] ; then
     echo "full.label Full GC collections"
   fi
   echo "full.draw LINE1"
@@ -179,12 +179,12 @@ config_gc()
 
 config_gcoverhead()
 {
-  echo "graph_title $graphtitle memory: %CPU GC"
+  echo "graph_title $graphtitle memory: CPU spent by garbage collector"
   echo "graph_args --base 1000 --lower-limit 0" # --upper-limit 1000000"
   echo "graph_scale yes" # Use 0.001 or 1200.
-  echo "graph_printf %3.4lf" # show more decimals.
+  echo "graph_printf %6.3lf" # show more decimals.
   echo "graph_vlabel CPU time (%)"
-  echo "graph_info The amount of time spent in garbage collection.  The measurement is in percent, A value of 1 means that one percent of the time is spent garbage collecting." ${graph_info}
+  echo "graph_info The amount of time spent in garbage collection.  The measurement is in percent, A value of 1 means that one percent of the time is spent garbage collecting.  Low is good." ${graph_info}
   echo "graph_category Escenic"
   echo "update no"  # this graph only loans from the heap graph...
   echo "graph_order young=escenic_jstat_${ece_instance}_heap.Young_Time_millis full=escenic_jstat_${ece_instance}_heap.Full_Time_millis"
@@ -198,10 +198,10 @@ config_gcoverhead()
 #  echo "young.cdef young,300000,/,100,*"
 #  echo "young.info time spent (in parts per million) doing young generation garbage collection.  These collections are done incrementally and asynchronously.  The only overhead is raw CPU usage."
 
-  if [ "${borrowed_labels}" ] ; then
+  if [ "${borrowed_labels}" == "1" ] ; then
     echo "full.label % time spent in GC"
   fi
-  echo "full.draw AREA"
+  echo "full.draw LINE1"
   echo "full.type DERIVE"
   echo "full.min 0"
   echo "full.cdef young,full,+,300000,/,100,*" # 1000 (millis) * 60 (minute) * 5 (munin graph period) = 300000 ms per 5minute period.
@@ -210,18 +210,18 @@ config_gcoverhead()
 
 config_heap()
 {
-  echo "graph_title $graphtitle memory usage"
+  echo "graph_title $graphtitle memory: Memory usage by generation"
   echo "graph_args --base 1024 -l 0"
   echo "graph_vlabel bytes"
   echo "graph_period minute" # this propagates to where the values are used (I hope)
   echo "graph_info Heap Usage split by different blocks of heap." ${graph_info}
   echo "graph_category Escenic"
   echo "update ${graph_update}"
-  echo "graph_order Eden_Used Survivor0_Used Survivor1_Used Survivor_Used Young_Limit Young_Free Old_Used Old_Limit Old_Free Permanent_Used Permanent_Limit Permanent_Free"
+  echo "graph_order Eden_Used Survivor0_Used Survivor1_Used Young_Limit Young_Free Survivor_Used Old_Used Old_Limit Old_Free Permanent_Used Permanent_Limit Permanent_Free"
 
-  echo "Eden_Used.label Eden_Used"
+  echo "Eden_Used.label Eden"
   echo "Eden_Used.draw AREA"
-  echo "Eden_Used.info New objects are always allocated here"
+  echo "Eden_Used.info New objects are almost always allocated here. It is a large part of the heap (typically one third) and when it is full, it is garbage collected and survivors are moved up to the Survivor portion of the young heap."
   echo "Eden_Used.colour 00cd00" # green3
 
   echo "Survivor0_Used.label Survivor0_Used"
@@ -230,31 +230,31 @@ config_heap()
   echo "Survivor1_Used.label Survivor1_Used"
   echo "Survivor1_Used.graph no"
 
-  echo "Survivor_Used.label Survivor_Used"
-  echo "Survivor_Used.draw STACK"
-  echo "Survivor_Used.colour 008b00" # green4
-  echo "Survivor_Used.info When Eden is full, Eden is garbage collected and survivors are placed in the Survivor area"
-  echo "Survivor_Used.cdef Survivor0_Used,Survivor1_Used,+"
-
   echo "Young_Limit.label Young_Limit"
   echo "Young_Limit.graph no"  # Don't show the "limit" as-is, since it's not useful.
 
   echo "Young_Free.label Young_Free"
   echo "Young_Free.draw STACK"  # Should equate Young_limit always.
-  echo "Young_Free.colour f0f8ff" # alice blue
+  echo "Young_Free.colour AEE8AE" # alice blue
   echo "Young_Free.cdef Young_Limit,Eden_Used,Survivor0_Used,Survivor1_Used,+,+,-"
 
-  echo "Old_Used.label Old_Used"
+  echo "Survivor_Used.label Survivor 0+1"
+  echo "Survivor_Used.draw STACK"
+  echo "Survivor_Used.colour 008b00" # green4
+  echo "Survivor_Used.info Objects that survived the Eden phase of their life are moved into the survivor portion of the heap.  It is usually a lot smaller"
+  echo "Survivor_Used.cdef Survivor0_Used,Survivor1_Used,+"
+
+  echo "Old_Used.label Old used"
   echo "Old_Used.draw STACK"
-  echo "Old_Used.colour ff4040" # brown1
+  echo "Old_Used.colour 3B09ED" # brown1
   echo "Old_Used.info When Survivor is full, Survivor is garbage collected and survivors are placed in the Old area"
 
   echo "Old_Limit.label Old_Limit"
   echo "Old_Limit.graph no"
 
-  echo "Old_Free.label Old_Free"
+  echo "Old_Free.label Old unused"
   echo "Old_Free.draw STACK"
-  echo "Old_Free.colour f0f8ff" # AliceBlue
+  echo "Old_Free.colour C5B5FF" # AliceBlue
   echo "Old_Free.cdef Old_Limit,Old_Used,-"
 
   echo "Permanent_Limit.label Permanent_Limit"
@@ -262,12 +262,12 @@ config_heap()
 
   echo "Permanent_Used.label Permanent Used"
   echo "Permanent_Used.draw STACK"
-  echo "Permanent_Used.colour ff7f00"
+  echo "Permanent_Used.colour FF8000" # A relatively dark blue tint
   echo "Permanent_Used.info Permanent space is only used for permanent type objects, like class loaders, classes and so on."
 
-  echo "Permanent_Free.label Permanent Free"
+  echo "Permanent_Free.label Permanent unused"
   echo "Permanent_Free.draw STACK"
-  echo "Permanent_Free.colour f0f8ff"
+  echo "Permanent_Free.colour F2C79B"
 
   echo "Permanent_Free.cdef Permanent_Limit,Permanent_Used,-"
 

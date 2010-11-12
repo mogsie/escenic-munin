@@ -86,6 +86,22 @@ jstatbin=${jstatbin:-$(which jstat)}
 ece_instance=$(echo $(basename $0) | sed -e s,escenic_jstat_,, -e 's,_.*,,' )
 graph=$(echo $(basename $0) | sed s,escenic_jstat_${ece_instance}_,,)
 
+MUNIN_VERSION=${MUNIN_VERSION:-1.2.5}
+MAJOR_VERSION=${MUNIN_VERSION/.*/}
+MINOR_VERSION=${MUNIN_VERSION/${MAJOR_VERSION}./}
+MINOR_VERSION=${MINOR_VERSION/.*/}
+MAINT_VERSION=${MUNIN_VERSION/${MAJOR_VERSION}.${MINOR_VERSION}./}
+
+borrowed_labels=0
+if [ "${MAJOR_VERSION}" -gt 1 ] ; then
+  borrowed_labels=1
+elif [ "${MAJOR_VERSION}" -eq 1 ] ; then
+  if [ "${MINOR_VERSION}" -gt 3 ] ; then
+    borrowed_labels=1
+  fi
+fi
+  
+
 tmp_pidfile="/var/run/escenic/ece-${ece_instance}.pid"
 pidfile=${pidfile:-${tmp_pidfile}}
 
@@ -124,6 +140,9 @@ config_uptime()
   echo "update no"  # this graph only loans from the heap graph...
   echo "graph_order uptime=escenic_jstat_${ece_instance}_heap.Uptime"
 
+  if [ "${borrowed_labels}" ] ; then
+    echo "uptime.label Uptime"
+  fi
   echo "uptime.draw AREA"
   echo "uptime.info Uptime of the java process in days"
 }
@@ -140,49 +159,58 @@ config_gc()
   echo "update no"  # this graph only loans from the heap graph...
   echo "graph_order young=escenic_jstat_${ece_instance}_heap.Young_Count full=escenic_jstat_${ece_instance}_heap.Full_Count"
 
-# Labels on borrowed things are bad for munin
-#  echo "Young.label Young_Count"
+# Labels on borrowed things are bad for munin < 1.3
+  if [ "${borrowed_labels}" ] ; then
+    echo "young.label Young collections"
+  fi
   echo "young.draw LINE2"
   echo "young.type DERIVE"
   echo "young.min 0"
-  echo "young.info The rate of young collections.  Young collections collect the eden and usually execute extremely quickly.  Young collections happen asynchronously and don't "
+  echo "young.info The rate of young collections.  Young collections collect the eden and usually execute extremely quickly. Young collections happen asynchronously and don't adversely affect the performance of the JVM."
 
-#  echo "Full.label Full_Count"
+  if [ "${borrowed_labels}" ] ; then
+    echo "full.label Full GC collections"
+  fi
   echo "full.draw LINE1"
   echo "full.type DERIVE"
   echo "full.min 0"
-  echo "full.info The rate of full collections."
+  echo "full.info The rate of full collections.  Full collections pause all the threads of the JVM while collection is going on, which may lead to spikes in latency. The JVM tries to avoid this, since a full collection usually takes a lot longer than young collections."
 }
 
 config_gcoverhead()
 {
-  echo "graph_title $graphtitle memory gc overhead"
+  echo "graph_title $graphtitle memory: %CPU GC"
   echo "graph_args --base 1000 --lower-limit 0" # --upper-limit 1000000"
-  echo "graph_scale no" # Use 0.001 or 1200.
-  echo "graph_vlabel GC overhead (per million)"
-  echo "graph_info The amount of time spent in garbage collection.  The measurement is in parts per million, since the value should usually be quite low, typically in the range 1 to 10.  A value of 1 means that one millionth of the time is spent garbage collecting." ${graph_info}
+  echo "graph_scale yes" # Use 0.001 or 1200.
+  echo "graph_printf %3.4lf" # show more decimals.
+  echo "graph_vlabel CPU time (%)"
+  echo "graph_info The amount of time spent in garbage collection.  The measurement is in percent, A value of 1 means that one percent of the time is spent garbage collecting." ${graph_info}
   echo "graph_category Escenic"
   echo "update no"  # this graph only loans from the heap graph...
   echo "graph_order young=escenic_jstat_${ece_instance}_heap.Young_Time_millis full=escenic_jstat_${ece_instance}_heap.Full_Time_millis"
 
+# I decided to merge the "gc time" graph data sets, since it clutters the display quite a lot.
 #  echo "young.label Young_Time_millis"
-  echo "young.draw AREA"
+#  echo "young.draw AREA"
   echo "young.type DERIVE"
-  echo "young.min 0"
-  echo "young.cdef young,30,/,100,*"
-  echo "young.info time spent (in parts per million) doing young generation garbage collection.  These collections are done incrementally and asynchronously.  The only overhead is raw CPU usage."
+  echo "young.graph no"
+#  echo "young.min 0"
+#  echo "young.cdef young,300000,/,100,*"
+#  echo "young.info time spent (in parts per million) doing young generation garbage collection.  These collections are done incrementally and asynchronously.  The only overhead is raw CPU usage."
 
-#  echo "full.label Full_Time_millis"
+  if [ "${borrowed_labels}" ] ; then
+    echo "full.label % time spent in GC"
+  fi
   echo "full.draw AREA"
   echo "full.type DERIVE"
   echo "full.min 0"
-  echo "full.cdef full,30,/,100,*" # 1000 (millis) * 60 (minute) * 5 (munin graph period) = 300000 ms per 5minute period.  Then / 1000 = 30, which gives parts per million. 
-  echo "full.info time spent (in parts per million) doing full generation garbage collection.  These collections are stop-the-world collections and cause latency spikes."
+  echo "full.cdef young,full,+,300000,/,100,*" # 1000 (millis) * 60 (minute) * 5 (munin graph period) = 300000 ms per 5minute period.
+  echo "full.info Percent of time a CPU spent doing incremental or full garbage collection."
 }
 
 config_heap()
 {
-  echo "graph_title $graphtitle memory"
+  echo "graph_title $graphtitle memory usage"
   echo "graph_args --base 1024 -l 0"
   echo "graph_vlabel bytes"
   echo "graph_period minute" # this propagates to where the values are used (I hope)
@@ -359,6 +387,15 @@ fi
 
 
 #
+# debug
+#
+if [ "$1" == "debug" ] ; then
+  echo "# Debug information"
+  env
+  exit 0
+fi
+
+#
 # config
 #
 if [ "$1" == "config" ] ; then
@@ -375,3 +412,37 @@ pid=$(cat ${pidfile})
 if [ "${graph}" == "heap" ] ; then
   jstat
 fi
+
+
+
+# 1.4.5 environment
+
+# MUNIN_BASH=/bin/bash
+# MUNIN_PLUGSTATE=/var/lib/munin/plugin-state
+# MUNIN_PERL=/usr/bin/perl
+# MUNIN_STATEDIR=/var/run/munin
+# MUNIN_PYTHON=/usr/bin/env python
+# MUNIN_PLUGINUSER=nobody
+# MUNIN_LOGDIR=/var/log/munin
+# MUNIN_PERLLIB=/usr/share/perl5
+# MUNIN_HASSETR=1
+# MUNIN_LIBDIR=/usr/share/munin
+# MUNIN_HTMLDIR=/var/cache/munin/www
+# MUNIN_CAP_MULTIGRAPH=1
+# MUNIN_OSTYPE=linux
+# MUNIN_BINDIR=/usr/bin
+# MUNIN_GOODSH=/bin/sh
+# MUNIN_SBINDIR=/usr/sbin
+# MUNIN_HOSTNAME=localhost.localdomain
+# MUNIN_VERSION=1.4.5
+# MUNIN_MASTER_IP=
+# MUNIN_DOCDIR=/usr/doc
+# MUNIN_RUBY=/usr/bin/env ruby
+# MUNIN_CGIDIR=/usr/lib/cgi-bin
+# MUNIN_MANDIR=/usr/share/man
+# MUNIN_DBDIR=/var/lib/munin
+# MUNIN_CONFDIR=/etc/munin
+# MUNIN_STATEFILE=/var/lib/munin/plugin-state/something
+# MUNIN_USER=munin
+# MUNIN_GROUP=munin
+# MUNIN_PREFIX=/usr

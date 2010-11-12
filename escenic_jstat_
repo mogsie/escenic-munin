@@ -261,7 +261,7 @@ config_heap()
   echo "Permanent_Limit.label Permanent_Limit"
   echo "Permanent_Limit.graph no"
 
-  echo "Permanent_Used.label Permanent Used"
+  echo "Permanent_Used.label Permanent used"
   echo "Permanent_Used.draw STACK"
   echo "Permanent_Used.colour FF8000" # A relatively dark blue tint
   echo "Permanent_Used.info Permanent space is only used for permanent type objects, like class loaders, classes and so on."

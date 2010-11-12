@@ -217,12 +217,13 @@ config_heap()
   echo "graph_info Heap Usage split by different blocks of heap." ${graph_info}
   echo "graph_category Escenic"
   echo "update ${graph_update}"
-  echo "graph_order Eden_Used Survivor0_Used Survivor1_Used Young_Limit Young_Free Survivor_Used Old_Used Old_Limit Old_Free Permanent_Used Permanent_Limit Permanent_Free"
+  echo "graph_order Eden_Used Survivor0_Used Survivor1_Used Young_Limit Young_Used Young_Free Old_Used Old_Limit Old_Free Permanent_Used Permanent_Limit Permanent_Free"
 
   echo "Eden_Used.label Eden"
-  echo "Eden_Used.draw AREA"
-  echo "Eden_Used.info New objects are almost always allocated here. It is a large part of the heap (typically one third) and when it is full, it is garbage collected and survivors are moved up to the Survivor portion of the young heap."
-  echo "Eden_Used.colour 00cd00" # green3
+  echo "Eden_Used.graph no"
+#  echo "Eden_Used.draw AREA"
+#  echo "Eden_Used.info New objects are almost always allocated here. It is a large part of the heap (typically one third) and when it is full, it is garbage collected and survivors are moved up to the Survivor portion of the young heap."
+#  echo "Eden_Used.colour 00cd00" # green3
 
   echo "Survivor0_Used.label Survivor0_Used"
   echo "Survivor0_Used.graph no"
@@ -233,16 +234,16 @@ config_heap()
   echo "Young_Limit.label Young_Limit"
   echo "Young_Limit.graph no"  # Don't show the "limit" as-is, since it's not useful.
 
-  echo "Young_Free.label Young_Free"
-  echo "Young_Free.draw STACK"  # Should equate Young_limit always.
-  echo "Young_Free.colour AEE8AE" # alice blue
-  echo "Young_Free.cdef Young_Limit,Eden_Used,Survivor0_Used,Survivor1_Used,+,+,-"
+  echo "Young_Used.label Young used"
+  echo "Young_Used.draw AREA"  # Should equate Young_limit always.
+  echo "Young_Used.colour 00CD00"
+  echo "Young_Used.info Objects are allocated in the young part of the heap.  The young part consists of Eden and Survivor0 and Survivor1, all of which get a certain portion of the young heap.  Objects live in the young part for a short time after which they are promoted to the old part of the heap."
+  echo "Young_Used.cdef Eden_Used,Survivor0_Used,Survivor1_Used,+,+"
 
-  echo "Survivor_Used.label Survivor 0+1"
-  echo "Survivor_Used.draw STACK"
-  echo "Survivor_Used.colour 008b00" # green4
-  echo "Survivor_Used.info Objects that survived the Eden phase of their life are moved into the survivor portion of the heap.  It is usually a lot smaller"
-  echo "Survivor_Used.cdef Survivor0_Used,Survivor1_Used,+"
+  echo "Young_Free.label Young unused"
+  echo "Young_Free.draw STACK"  # Should equate Young_limit always.
+  echo "Young_Free.colour AEE8AE" # a light green
+  echo "Young_Free.cdef Young_Limit,Eden_Used,Survivor0_Used,Survivor1_Used,+,+,-"
 
   echo "Old_Used.label Old used"
   echo "Old_Used.draw STACK"

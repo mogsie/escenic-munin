@@ -116,7 +116,21 @@ if [ ! -r "$pidfile" ] ; then
 fi
 
 if [ -r "${pidfile}" ] ; then
-  owner_uid="$[$(ps -o uid= $(cat ${pidfile}))]"
+  pid=$(cat ${pidfile})
+  echo "# pid is ${pid}"
+  exe=$(ps -o comm= ${pid})
+  echo "# exe is ${exe}"
+  if [ "$(basename ${exe})" != "java" ] ; then
+    for p in $( ps -o pid= --ppid ${pid} ) ; do
+      echo "# checking child of pid ${pid}, ${p}"
+      if [ "$(basename $(ps -o comm= ${p}) )" == "java" ] ; then
+        echo "# found child java process of ${pid}: ${p}"
+        pid=${p}
+        break;
+      fi
+    done
+  fi
+  owner_uid="$[$(ps -o uid= ${pid})]"
   my_id="$[$(id -u)]"
 
   if [ "$my_id" == "0" -o "$owner_uid" != "$my_id" ] ; then
@@ -166,6 +180,7 @@ config_gc()
   echo "young.draw LINE2"
   echo "young.type DERIVE"
   echo "young.min 0"
+  echo "young.cdef young,0,GT,young,0,IF"
   echo "young.info The rate of young collections.  Young collections collect the eden and usually execute extremely quickly. Young collections happen asynchronously and don't adversely affect the performance of the JVM."
 
   if [ "${borrowed_labels}" == "1" ] ; then
@@ -174,6 +189,7 @@ config_gc()
   echo "full.draw LINE1"
   echo "full.type DERIVE"
   echo "full.min 0"
+  echo "full.cdef full,0,GT,full,0,IF"
   echo "full.info The rate of full collections.  Full collections pause all the threads of the JVM while collection is going on, which may lead to spikes in latency. The JVM tries to avoid this, since a full collection usually takes a lot longer than young collections."
 }
 
@@ -194,7 +210,7 @@ config_gcoverhead()
 #  echo "young.draw AREA"
   echo "young.type DERIVE"
   echo "young.graph no"
-#  echo "young.min 0"
+  echo "young.min 0"
 #  echo "young.cdef young,300000,/,100,*"
 #  echo "young.info time spent (in parts per million) doing young generation garbage collection.  These collections are done incrementally and asynchronously.  The only overhead is raw CPU usage."
 
@@ -204,7 +220,14 @@ config_gcoverhead()
   echo "full.draw LINE1"
   echo "full.type DERIVE"
   echo "full.min 0"
-  echo "full.cdef young,full,+,300000,/,100,*" # 1000 (millis) * 60 (minute) * 5 (munin graph period) = 300000 ms per 5minute period.
+  # if (x) then (y) else (z) -->   x,y,z,IF
+  # x = young+full gt 0
+  # y = young+ful
+  # z = 0
+
+  echo "full.cdef young,full,+,0,GT,young,full,+,0,IF,300000,/,100,*" # 1000 (millis) * 60 (minute) * 5 (munin graph period) = 300000 ms per 5minute period.
+#  echo "full.cdef misses,hits,+,0,GT,100,hits,*,${a}_hits,${a}_misses,+,/,UNKN,IF"
+#  echo "full.cdef young,full,+,300000,/,100,*" # 1000 (millis) * 60 (minute) * 5 (munin graph period) = 300000 ms per 5minute period.
   echo "full.info Percent of time a CPU spent doing incremental or full garbage collection."
 }
 
@@ -272,20 +295,29 @@ config_heap()
 
   echo "Permanent_Free.cdef Permanent_Limit,Permanent_Used,-"
 
+  # unused graphs, used for loaning data to lower munin processing time by avoiding
+  # several calls to jstat.
   echo "Young_Count.label Young_Count"
   echo "Young_Count.type DERIVE"
   echo "Young_Count.draw AREA"
   echo "Young_Count.graph no"
+  echo "Young_Count.min 0"
+
   echo "Full_Count.label Full_Count"
   echo "Full_Count.type DERIVE"
   echo "Full_Count.draw STACK"
   echo "Full_Count.graph no"
+  echo "Full_Count.min 0"
+
   echo "Young_Time_millis.label Young_Time_millis"
   echo "Young_Time_millis.type DERIVE"
   echo "Young_Time_millis.graph no"
+  echo "Young_Time_millis.min 0"
+
   echo "Full_Time_millis.label Full_Time_millis"
   echo "Full_Time_millis.type DERIVE"
   echo "Full_Time_millis.graph no"
+  echo "Full_Time_millis.min 0"
 
   echo "Uptime.label Uptime"
   echo "Uptime.info The current uptime (in days) as reported by jstat -t"
@@ -331,7 +363,7 @@ ${jstatbin} -gc -t ${pid} | tail -n 1 | awk \
 	printf "Full_Count.value %d\n", FGC; \
 	printf "Young_Time_millis.value %d\n", YGCT * 1000; \
 	printf "Full_Time_millis.value %d\n", FGCT * 1000; \
-	printf "Uptime.value %.2f\n", UPTIME/86400; \
+	printf "Uptime.value %.4f\n", UPTIME/86400; \
 }'
 
 ${jstatbin} -gccapacity ${pid} | tail -n 1 | awk \
@@ -407,8 +439,6 @@ fi
 #
 # Main
 #
-pid=$(cat ${pidfile})
-# echo '#' $pid
 
 if [ "${graph}" == "heap" ] ; then
   jstat

@@ -118,9 +118,14 @@ fi
 if [ -r "${pidfile}" ] ; then
   pid=$(cat ${pidfile})
   echo "# pid is ${pid}"
-  exe=$(ps -o comm= ${pid})
-  echo "# exe is ${exe}"
-  if [ "$(basename ${exe})" != "java" ] ; then
+  exe="$(ps -o comm= ${pid})"
+  echo "# exe is <${exe}>"
+  if [ "${exe}" == "" ] ; then
+    echo "# pid ${pid} is not running..."
+    graph_info="$graph_info Note: dangling pidfile $pidfile isn't running"
+    unset pid
+    graph_update=no
+  elif [ "$(basename ${exe})" != "java" ] ; then
     for p in $( ps -o pid= --ppid ${pid} ) ; do
       echo "# checking child of pid ${pid}, ${p}"
       if [ "$(basename $(ps -o comm= ${p}) )" == "java" ] ; then
@@ -130,12 +135,14 @@ if [ -r "${pidfile}" ] ; then
       fi
     done
   fi
-  owner_uid="$[$(ps -o uid= ${pid})]"
-  my_id="$[$(id -u)]"
+  if [ "${pid}" != "" ] ; then
+    owner_uid="$[$(ps -o uid= ${pid})]"
+    my_id="$[$(id -u)]"
 
-  if [ "$my_id" == "0" -o "$owner_uid" != "$my_id" ] ; then
-    graph_info="$graph_info NOTE: pid is owned by a different user ${owner_uid} than me ${my_id}.  So I can't run jstat to talk to it."
-    graph_update=no
+    if [ "$my_id" == "0" -o "$owner_uid" != "$my_id" ] ; then
+      graph_info="$graph_info NOTE: pid is owned by a different user ${owner_uid} than me ${my_id}.  So I can't run jstat to talk to it."
+      graph_update=no
+    fi
   fi
 fi
 

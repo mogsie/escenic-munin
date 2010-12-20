@@ -33,26 +33,27 @@ that user.
 
 The system suggests four graphs.
 
-
 =head2 HEAP GRAPH
 
 The "heap" graph tries to visualize the entire heap in three distinct areas:
 
 The bottom area (green) indicates the size of the young generation, which
 consists of "eden", "survivor0" and "survivor1".  Stacked on top of that
-is the unused portion of that heap (in a light gray tint).
+is the unused portion of that heap (in a light green tint).
 
-The middle area (red) indicates the size of the old generation, which
+The middle area (blue) indicates the size of the old generation, which
 consists of objects that survived being in the young generation for a while.
-Stacked on top of that is again the unused portion of the old generation.
+Stacked on top of that is again the unused portion of the old generation
+(in a light blue tint).
 
-The top area (blue) indicates the size of the permanent generation, which
-consists of classes and other things.
+The top area (orange) indicates the size of the permanent area, which
+consists of classes and other things.  Stacked on top is the unused portion
+of the permanent area (light orange).
 
 The -Xmx parameter controls the size of the young and the old generation, so
-the top of the free space of the old generation should correspond exactly
-with the value of -XMx.  The capacity of the permanent generation is usually
-controlled via the proprietary -XX:MaxPermSize parameter.
+the green and blue portions of the graph should correspond exactly
+with the value of -Xmx.  The capacity of the permanent generation is usually
+controlled via the proprietary -XX:MaxPermSize JVM option.
 
 =head2 GC COUNT GRAPH
 

@@ -31,8 +31,11 @@ that user.
 
 =head1 INTERPRETATION
 
-The system suggests three graphs.  The "heap" graph tries to visualize the
-entire heap in three distinct areas:
+The system suggests four graphs.
+
+
+=head2 HEAP GRAPH
+The "heap" graph tries to visualize the entire heap in three distinct areas:
 
 The bottom area (green) indicates the size of the young generation, which
 consists of "eden", "survivor0" and "survivor1".  Stacked on top of that
@@ -50,8 +53,31 @@ the top of the free space of the old generation should correspond exactly
 with the value of -XMx.  The capacity of the permanent generation is usually
 controlled via the proprietary -XX:MaxPermSize parameter.
 
+=head2 GC COUNT GRAPH
+
 The second graph is a garbage collection graph which shows the progress of
 the garbage collector, namely the number of garbage collections per minute.
+
+If this number is large, it indicates that the JVM is busy allocating many
+objects and then collecting them again.  This graph usually co-varies with
+the gcoverhead graph.
+
+=head2 GC OVERHEAD GRAPH
+
+The third graph shows the utilization, or overhead of the garbage collector.
+The graph shows the percentage of the CPU time being used in the garbage
+collector.  In an idle or healthy system, this number is quite low, below 1.
+
+If this number is large, this typically indicates that the heap is filled up
+to the limit with objects that can't be reclaimed.  This is usually due to
+cache sizes not being in line with the size of the JVM's heap, but it may
+also be an indicator of a memory leak.
+
+=head2 UPTIME
+
+This is a simple uptime graph which shows the uptime of the monitored JVM
+process, as reported by jstat.  This graph will show the actual Java process
+uptime, and not the uptime of any wrapper that may be re-spawning it.
 
 =head1 MAGIC MARKERS
 
@@ -65,16 +91,18 @@ instance of this works, if you run a non-standard setup, e.g. pidfiles in
 other locations, etc.
 
     jstatbin     - path to jstat executable. Defaults to
-                   '/etc/alternatives/jstat'
+                   looking for jstat in the PATH.
 
     ece_instance - name of instance. Defaults to output of 'suggest'
                    The instance names is used to group and title graphs,
-                   and to locate the pidfile
+                   and to locate the pidfile.
 
     pidfile      - Override name of pidfile to use. Defaults to
-                   '/var/run/escenic/ece-${ece_instance}.pid'
+                   '/var/run/escenic/ece-${ece_instance}.pid'.  If
+                   configured manually (i.e. not suggest) this can be
+                   used to use this plug-in on arbitrary JVMs.  YMMV.
 
-    graphtitle   - if unspecified, the graph title is appended with the
+    graphtitle   - if unspecified, the graph title is preended with the
                    name of the instance.
 
 =cut
@@ -175,7 +203,7 @@ config_gc()
   echo "graph_scale no" # Use 0.001 or 1200.
   echo "graph_period minute"
   echo "graph_vlabel collections / \${graph_period}"
-  echo "graph_info The number of garbage collections per \${graph_period}. " ${graph_info}
+  echo "graph_info The frequency of garbage collections." ${graph_info}
   echo "graph_category Escenic"
   echo "update no"  # this graph only loans from the heap graph...
   echo "graph_order young=escenic_jstat_${ece_instance}_heap.Young_Count full=escenic_jstat_${ece_instance}_heap.Full_Count"

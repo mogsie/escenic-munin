@@ -35,6 +35,7 @@ The system suggests four graphs.
 
 
 =head2 HEAP GRAPH
+
 The "heap" graph tries to visualize the entire heap in three distinct areas:
 
 The bottom area (green) indicates the size of the young generation, which
@@ -91,7 +92,7 @@ instance of this works, if you run a non-standard setup, e.g. pidfiles in
 other locations, etc.
 
     jstatbin     - path to jstat executable. Defaults to
-                   looking for jstat in the PATH.
+                   looking for jstat using which.
 
     ece_instance - name of instance. Defaults to output of 'suggest'
                    The instance names is used to group and title graphs,
@@ -215,7 +216,7 @@ config_gc()
   echo "young.draw LINE2"
   echo "young.type DERIVE"
   echo "young.min 0"
-  echo "young.cdef young,0,GT,young,0,IF"
+  echo "young.cdef young,0,GT,young,UNKN,IF"
   echo "young.info The rate of young collections.  Young collections collect the eden and usually execute extremely quickly. Young collections happen asynchronously and don't adversely affect the performance of the JVM."
 
   if [ "${borrowed_labels}" == "1" ] ; then
@@ -224,7 +225,7 @@ config_gc()
   echo "full.draw LINE1"
   echo "full.type DERIVE"
   echo "full.min 0"
-  echo "full.cdef full,0,GT,full,0,IF"
+  echo "full.cdef full,0,GT,full,UNKN,IF"
   echo "full.info The rate of full collections.  Full collections pause all the threads of the JVM while collection is going on, which may lead to spikes in latency. The JVM tries to avoid this, since a full collection usually takes a lot longer than young collections."
 }
 

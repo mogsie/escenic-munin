@@ -207,7 +207,7 @@ config_gcoverhead()
   echo "graph_scale yes" # Use 0.001 or 1200.
   echo "graph_printf %6.3lf" # show more decimals.
   echo "graph_vlabel CPU time (%)"
-  echo "graph_info The amount of time spent in garbage collection.  The measurement is in percent, A value of 1 means that one percent of the time is spent garbage collecting.  Low is good." ${graph_info}
+  echo "graph_info The amount of time spent in garbage collection.  The measurement is in percent, A value of 1 means that one percent of the time is spent garbage collecting, which in turn means that for every minute that goes by, 600ms is spent in garbage collection.  A value of 0.001 (1 milli) indicates that less than one millisecond is being spent on GC per minute.  The value includes both young and old heap collections.  Low is good." ${graph_info}
   echo "graph_category Escenic"
   echo "update no"  # this graph only loans from the heap graph...
   echo "graph_order young=escenic_jstat_${ece_instance}_heap.Young_Time_millis full=escenic_jstat_${ece_instance}_heap.Full_Time_millis"

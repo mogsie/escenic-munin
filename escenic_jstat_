@@ -33,7 +33,7 @@ that user.
 
 The system suggests four graphs.
 
-=head2 HEAP GRAPH
+=head2 MEMORY USAGE GRAPH
 
 The "heap" graph tries to visualize the entire heap in three distinct areas:
 
@@ -55,25 +55,31 @@ the green and blue portions of the graph should correspond exactly
 with the value of -Xmx.  The capacity of the permanent generation is usually
 controlled via the proprietary -XX:MaxPermSize JVM option.
 
-=head2 GC COUNT GRAPH
+=head2 GARBAGE COLLECTION COUNTER GRAPH
 
-The second graph is a garbage collection graph which shows the progress of
-the garbage collector, namely the number of garbage collections per minute.
+The second graph is a garbage collection graph which shows how often the
+garbage collector kicks in.  More specifically the number of garbage
+collections per minute.
 
 If this number is large, it indicates that the JVM is busy allocating many
 objects and then collecting them again.  This graph usually co-varies with
 the gcoverhead graph.
 
-=head2 GC OVERHEAD GRAPH
+=head2 CPU SPENT IN GARBAGE COLLECTION GRAPH
 
-The third graph shows the utilization, or overhead of the garbage collector.
+The third graph shows the amount of time used reclaiming objects from the
+heap.
+
 The graph shows the percentage of the CPU time being used in the garbage
-collector.  In an idle or healthy system, this number is quite low, below 1.
+collector.  In an idle or healthy system, this number is quite low, well
+below 1.  Values in the range 1 milli are common.  1 milli-percent actually
+means one thousandth of a percentile.
 
 If this number is large, this typically indicates that the heap is filled up
 to the limit with objects that can't be reclaimed.  This is usually due to
 cache sizes not being in line with the size of the JVM's heap, but it may
-also be an indicator of a memory leak.
+also be an indicator of a memory leak.  Large usually means greater than 1-2
+percent.
 
 =head2 UPTIME
 
@@ -223,7 +229,7 @@ config_gc()
   if [ "${borrowed_labels}" == "1" ] ; then
     echo "full.label Full GC collections"
   fi
-  echo "full.draw LINE1"
+  echo "full.draw LINE2"
   echo "full.type DERIVE"
   echo "full.min 0"
   echo "full.cdef full,0,GT,full,UNKN,IF"
@@ -254,7 +260,7 @@ config_gcoverhead()
   if [ "${borrowed_labels}" == "1" ] ; then
     echo "full.label % time spent in GC"
   fi
-  echo "full.draw LINE1"
+  echo "full.draw LINE2"
   echo "full.type DERIVE"
   echo "full.min 0"
   # if (x) then (y) else (z) -->   x,y,z,IF

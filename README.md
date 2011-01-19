@@ -41,6 +41,13 @@ You might also need to tell it where jstat is:
      [escenic_jstat_*]
           env.jstatbin = /opt/jdk/bin/jstat
 
+If you have pidfiles in non-standard locations or with strange names, you can specify those too:
+
+     [escenic_jstat_default_*]
+          env.pidfile = /opt/appserver/run/jvm.pid
+     [escenic_jstat_foo_*]
+          env.pidfile = /opt/solr/run/solr.pid
+
 ##Examples
 
 Here's a heap graph.  It shows the different parts of the JVM memory so you can see what needs tuning.

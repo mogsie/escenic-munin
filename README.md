@@ -10,9 +10,24 @@ Have fun with them!
 
 ##escenic_jstat_
 
-add it to your /usr/lib/munin/plugins/ and run munin-node-configure to get its suggestions running.  It works best if Escenic is running while you do this, since it looks for its pidfiles in /var/run/escenic/.
+### Installation
+
+     curl https://github.com/mogsie/escenic-munin/raw/master/escenic_jstat_ |
+          sudo tee /usr/share/munin/plugins/escenic_jstat_
+     chmod 755 /usr/share/munin/plugins/escenic_jstat_
+     sudo munin-node-configure --shell | sudo sh
+
+Add it to your /usr/share/munin/plugins/ and run munin-node-configure to get its suggestions running.  It works only if Escenic is running while you do this, since it looks for its pidfiles in /var/run/escenic/.
 
 It suggests four graphs for each instance :_gc _gcoverhead _heap and _uptime, all prefixed with the name of the instance.
+
+If you need to install the symlinks manually, make a symlink as follows:
+     escenic_jstat_default_heap       -> /usr/share/munin/plugins/escenic_jstat_
+     escenic_jstat_default_gc         -> /usr/share/munin/plugins/escenic_jstat_
+     escenic_jstat_default_gcoverhead -> /usr/share/munin/plugins/escenic_jstat_
+     escenic_jstat_default_uptime     -> /usr/share/munin/plugins/escenic_jstat_
+
+If you have more than one pidfile, make another set of links swapping out default with something else.
 
 It uses jstat to run, so you need to tell munin to run this plug-in as the same user as escenic.  So for two instances (default and test), running as different users (escenic and test):
 
@@ -20,6 +35,11 @@ It uses jstat to run, so you need to tell munin to run this plug-in as the same 
            user escenic
      [escenic_jstat_test_*]
           user test
+
+You might also need to tell it where jstat is:
+
+     [escenic_jstat_*]
+          env.jstatbin = /opt/jdk/bin/jstat
 
 ##Examples
 

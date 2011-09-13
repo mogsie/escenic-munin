@@ -16,7 +16,7 @@ different instances of Content Engine and graphs their heaps individually.
 
 escenic_jstat_ needs to know which instance it will run on.  Since 5.1,
 ECE out of the box allows easy configuration of several instances.  These
-end up putting their pidfiles in /var/run/escenic/ece-xxx.pid.  This munin
+end up putting their pidfiles in /var/run/escenic/engine-xxx.pid.  This munin
 plug-in suggests a set of graphs for each of the currently running instances.
 
 The plugin uses the jstat utility from the JVM which it assumes is available
@@ -106,7 +106,7 @@ other locations, etc.
                    and to locate the pidfile.
 
     pidfile      - Override name of pidfile to use. Defaults to
-                   '/var/run/escenic/ece-${ece_instance}.pid'.  If
+                   '/var/run/escenic/engine-${ece_instance}.pid'.  If
                    configured manually (i.e. not suggest) this can be
                    used to use this plug-in on arbitrary JVMs.  YMMV.
 
@@ -138,7 +138,16 @@ elif [ "${MAJOR_VERSION}" -eq 1 ] ; then
 fi
   
 
-tmp_pidfile="/var/run/escenic/ece-${ece_instance}.pid"
+# in 5.1 to 5.3, the ece scripts make a pidfile called ece.
+# in 5.4 onwards (?) the ece scripts make a pidfile called engine.
+# go figure :-)
+
+pid_base=engine
+tmp_pidfile="/var/run/escenic/${pid_base}-${ece_instance}.pid"
+if [ ! -r $tmp_pidfile ] ; then
+  pid_base=ece
+  tmp_pidfile="/var/run/escenic/${pid_base}-${ece_instance}.pid"
+fi
 pidfile=${pidfile:-${tmp_pidfile}}
 
 if [ ! -r "$jstatbin" ] ; then
@@ -434,9 +443,12 @@ if [ "$1" = "autoconf" ]; then
     exit 0
   fi
 
-  if [ "$(ls 2>/dev/null /var/run/escenic/ece-*.pid | wc -l)" == "0" ]; then
-    echo "no (No escenic pidfiles in /var/run/escenic/ece-*.pid)"
-    exit 0
+  # Check for the presence of both ece or engine pid files
+  if [ "$(ls 2>/dev/null /var/run/escenic/engine-*.pid | wc -l)" == "0" ]; then
+    if [ "$(ls 2>/dev/null /var/run/escenic/ece-*.pid | wc -l)" == "0" ]; then
+      echo "no (No escenic pidfiles in /var/run/escenic/{ece|engine}-*.pid)"
+      exit 0
+    fi
   fi
 
   echo "yes"
@@ -450,12 +462,14 @@ fi
 
 if [ "$1" = "suggest" ]; then
 
-  for a in /var/run/escenic/ece-*.pid ; do
-    ece_instance=$(basename $a .pid | sed s/^ece-//)
-    echo ${ece_instance}_heap
-    echo ${ece_instance}_gc
-    echo ${ece_instance}_gcoverhead
-    echo ${ece_instance}_uptime
+  for pid_base in ece engine ; do
+    for a in /var/run/escenic/${pid_base}-*.pid ; do
+      ece_instance=$(basename $a .pid | sed s/^${pid_base}-//)
+      echo ${ece_instance}_heap
+      echo ${ece_instance}_gc
+      echo ${ece_instance}_gcoverhead
+      echo ${ece_instance}_uptime
+    done
   done
 
   exit 0

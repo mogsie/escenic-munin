@@ -53,13 +53,13 @@ If you have pidfiles in non-standard locations or with strange names, you can sp
 
 Here's a heap graph.  It shows the different parts of the JVM memory so you can see what needs tuning.
 
-![heap graph](https://github.com/mogsie/escenic-munin/raw/master/site/escenic_jstat_default_heap-day.png)  ![heap graph](https://github.com/mogsie/escenic-munin/raw/master/site/escenic_jstat_default_heap-week.png)
+<img src="https://github.com/mogsie/escenic-munin/raw/master/site/escenic_jstat_default_heap-day.png" width="50%"> <img src="https://github.com/mogsie/escenic-munin/raw/master/site/escenic_jstat_default_heap-week.png" width="50%">
 
 Here's a couple of GC graphs that show you how many garbage collections that are happening per minute, and how much CPU is used doing just that:
 
 Garbage collections per minute
 
-![Line graph showing about 100-150 garbage collections per minute over a 30-hour period](https://github.com/mogsie/escenic-munin/raw/master/site/escenic_jstat_default_gc-day.png) ![Line graph showing about 100-150 garbage collections per minute over a 30-hour period](https://github.com/mogsie/escenic-munin/raw/master/site/escenic_jstat_default_gc-week.png)
+<img src="https://github.com/mogsie/escenic-munin/raw/master/site/escenic_jstat_default_gc-day.png" width="50%"> <img src="https://github.com/mogsie/escenic-munin/raw/master/site/escenic_jstat_default_gc-week.png" width="50%">
 
 Percent of CPU or rather time used in garbage collection
 

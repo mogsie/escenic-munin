@@ -63,5 +63,6 @@ Garbage collections per minute
 
 Percent of CPU or rather time used in garbage collection
 
-![line graph with percent on Y-axis and time on X-axis, showing 10-50 milli-percent over a 30-hour period](https://github.com/mogsie/escenic-munin/raw/master/site/escenic_jstat_default_gcoverhead-day.png) ![line graph with percent on Y-axis and time on X-axis, showing 10-50 milli-percent over a 30-hour period](https://github.com/mogsie/escenic-munin/raw/master/site/escenic_jstat_default_gcoverhead-week.png)
+<img src="https://github.com/mogsie/escenic-munin/raw/master/site/escenic_jstat_default_gcoverhead-day.png" style="width: 50%"> <img src="https://github.com/mogsie/escenic-munin/raw/master/site/escenic_jstat_default_gcoverhead-week.png" style="width: 50%">
+
 

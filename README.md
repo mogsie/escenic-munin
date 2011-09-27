@@ -2,13 +2,13 @@ This is a collection of plug-ins aimed at monitoring instances of Escenic Conten
 
 They are licensed under a BSD license.
 
- * escenic_jstat_   -- contrib family autoconf and suggest capable.
- * escenic_utilization_ -- manual contrib family autoconf and suggest capable.  Requires port number.
+ * escenic\_jstat\_   -- contrib family autoconf and suggest capable.
+ * escenic\_utilization\_ -- manual contrib family autoconf and suggest capable.  Requires port number.
 
 Have fun with them!
 
 
-##escenic_jstat_
+##escenic\_jstat\_
 
 ### Installation
 
@@ -19,9 +19,10 @@ Have fun with them!
 
 Add it to your /usr/share/munin/plugins/ and run munin-node-configure to get its suggestions running.  It works only if Escenic is running while you do this, since it looks for its pidfiles in /var/run/escenic/.
 
-It suggests four graphs for each instance :_gc _gcoverhead _heap and _uptime, all prefixed with the name of the instance.
+It suggests four graphs for each instance :\_gc \_gcoverhead \_heap and \_uptime, all prefixed with the name of the instance.
 
 If you need to install the symlinks manually, make a symlink as follows:
+
      escenic_jstat_default_heap       -> /usr/share/munin/plugins/escenic_jstat_
      escenic_jstat_default_gc         -> /usr/share/munin/plugins/escenic_jstat_
      escenic_jstat_default_gcoverhead -> /usr/share/munin/plugins/escenic_jstat_
@@ -52,15 +53,15 @@ If you have pidfiles in non-standard locations or with strange names, you can sp
 
 Here's a heap graph.  It shows the different parts of the JVM memory so you can see what needs tuning.
 
-![heap graph](https://github.com/mogsie/escenic-munin/raw/master/site/escenic_jstat_baz_heap-day.png)
+![heap graph](https://github.com/mogsie/escenic-munin/raw/master/site/escenic_jstat_default_heap-day.png)  ![heap graph](https://github.com/mogsie/escenic-munin/raw/master/site/escenic_jstat_default_heap-week.png)
 
 Here's a couple of GC graphs that show you how many garbage collections that are happening per minute, and how much CPU is used doing just that:
 
 Garbage collections per minute
 
-![Line graph showing about 100-150 garbage collections per minute over a 30-hour period](https://github.com/mogsie/escenic-munin/raw/master/site/escenic_jstat_baz_gc-day.png)
+![Line graph showing about 100-150 garbage collections per minute over a 30-hour period](https://github.com/mogsie/escenic-munin/raw/master/site/escenic_jstat_default_gc-day.png) ![Line graph showing about 100-150 garbage collections per minute over a 30-hour period](https://github.com/mogsie/escenic-munin/raw/master/site/escenic_jstat_default_gc-week.png)
 
 Percent of CPU or rather time used in garbage collection
 
-![line graph with percent on Y-axis and time on X-axis, showing 10-50 milli-percent over a 30-hour period](https://github.com/mogsie/escenic-munin/raw/master/site/escenic_jstat_baz_gcoverhead-day.png)
+![line graph with percent on Y-axis and time on X-axis, showing 10-50 milli-percent over a 30-hour period](https://github.com/mogsie/escenic-munin/raw/master/site/escenic_jstat_default_gcoverhead-day.png) ![line graph with percent on Y-axis and time on X-axis, showing 10-50 milli-percent over a 30-hour period](https://github.com/mogsie/escenic-munin/raw/master/site/escenic_jstat_default_gcoverhead-week.png)
 

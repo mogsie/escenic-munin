@@ -51,9 +51,17 @@ If you have pidfiles in non-standard locations or with strange names, you can sp
 
 ##Examples
 
-Here's a heap graph.  It shows the different parts of the JVM memory so you can see what needs tuning.
+The example is from a live system, where memory exhaustion became very apparent by looking at how the heap grpahs evolved, and how increasing the heap size fixed the problem.
+
+### Heap graph
+
+Here's a heap graph.  It shows the different parts of the JVM memory so you can see what needs tuning.  On the graph to the left, the heap size increased from 2.0Gb to 2.5Gb, and you can clearly see how this affected the young and old generations.  It is also apparent that before the increase in heap size, the old generation was full.  Indeed, on the graph to the right, on the night between the 20th and 21st, the heap seems to be completely full.
 
 <img src="https://github.com/mogsie/escenic-munin/raw/master/site/escenic_jstat_default_heap-day.png" width="50%"> <img src="https://github.com/mogsie/escenic-munin/raw/master/site/escenic_jstat_default_heap-week.png" width="50%">
+
+### Young vs Old GCs
+
+The garbage collection graph shows you how many garbage collections that are happening every minute.  On the graph to the left, the young garbage collector (green) is running at about 10-15 collections per minute, which is about 4-6 seconds between each collection.  However, on the graph to the right, you see that on the night between the 20th and 21st, there was a period of a few hours where the old generation was being collected severely, at the same time that the old heap was "full".  The full collections were running at about 3 or four per minute.
 
 Here's a couple of GC graphs that show you how many garbage collections that are happening per minute, and how much CPU is used doing just that:
 

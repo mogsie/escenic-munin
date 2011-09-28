@@ -470,7 +470,7 @@ fi
 if [ "$1" = "suggest" ]; then
 
   for pid_base in ece engine ; do
-    for a in /var/run/escenic/${pid_base}-*.pid ; do
+    for a in $(ls /var/run/escenic/${pid_base}-*.pid 2>/dev/null) ; do
       ece_instance=$(basename $a .pid | sed s/^${pid_base}-//)
       echo ${ece_instance}_heap
       echo ${ece_instance}_gc

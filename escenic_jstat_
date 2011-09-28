@@ -138,10 +138,6 @@ elif [ "${MAJOR_VERSION}" -eq 1 ] ; then
 fi
   
 
-# in 5.1 to 5.3, the ece scripts make a pidfile called ece.
-# in 5.4 onwards (?) the ece scripts make a pidfile called engine.
-# go figure :-)
-
 pid_base=engine
 tmp_pidfile="/var/run/escenic/${pid_base}-${ece_instance}.pid"
 if [ ! -r $tmp_pidfile ] ; then
@@ -280,6 +276,17 @@ config_gcoverhead()
   echo "full.cdef young,full,+,0,GT,young,full,+,0,IF,300000,/,100,*" # 1000 (millis) * 60 (minute) * 5 (munin graph period) = 300000 ms per 5minute period.
 #  echo "full.cdef misses,hits,+,0,GT,100,hits,*,${a}_hits,${a}_misses,+,/,UNKN,IF"
 #  echo "full.cdef young,full,+,300000,/,100,*" # 1000 (millis) * 60 (minute) * 5 (munin graph period) = 300000 ms per 5minute period.
+
+# Explanation of full.cdef
+# var result = 0;
+# if (young+full > 0) then result = young+full;
+# result = result / 300000  (number of milliseconds per 5 minute)
+# result = result * 100     (percent graph)
+
+# so if we've spent 60 seconds in (young+full) over the last 5 minute
+# interval (that's 20%), that's 60.000 milliseconds, we get
+# 60k = 60k / 300000 * 100, which equals 20.
+
   echo "full.info Percent of time a CPU spent doing incremental or full garbage collection."
 }
 

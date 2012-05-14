@@ -138,12 +138,15 @@ elif [ "${MAJOR_VERSION}" -eq 1 ] ; then
 fi
   
 
-pid_base=engine
-tmp_pidfile="/var/run/escenic/${pid_base}-${ece_instance}.pid"
-if [ ! -r $tmp_pidfile ] ; then
-  pid_base=ece
-  tmp_pidfile="/var/run/escenic/${pid_base}-${ece_instance}.pid"
-fi
+# Look for a pidfile, prefering engine's pidfiles.
+for a in engine ece search rmi-hub analysis changelogd ; do
+  tmp_pidfile="/var/run/escenic/${a}-${ece_instance}.pid"
+  if [ -r $tmp_pidfile ] ; then 
+    break;
+  fi
+done
+
+# use found pidfile unless specified by config parameters.
 pidfile=${pidfile:-${tmp_pidfile}}
 
 if [ ! -r "$jstatbin" ] ; then
@@ -468,10 +471,16 @@ fi
 #
 
 if [ "$1" = "suggest" ]; then
-
-  for pid_base in ece engine ; do
+  for pid_base in ece engine analysis changelogd search rmi-hub ; do
     for a in $(ls /var/run/escenic/${pid_base}-*.pid 2>/dev/null) ; do
       ece_instance=$(basename $a .pid | sed s/^${pid_base}-//)
+      if [[ "$instances" =~ "<$ece_instance>" ]] ; then
+        echo "# Ignoring pidfile $a because it would conflict with other instances."
+        echo "# This pidfile needs manual setup."
+        break;
+      fi
+
+      instances="$instances <$ece_instance>"
       echo ${ece_instance}_heap
       echo ${ece_instance}_gc
       echo ${ece_instance}_gcoverhead

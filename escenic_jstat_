@@ -457,11 +457,9 @@ if [ "$1" = "autoconf" ]; then
   fi
 
   # Check for the presence of both ece or engine pid files
-  if [ "$(ls 2>/dev/null /var/run/escenic/engine-*.pid | wc -l)" == "0" ]; then
-    if [ "$(ls 2>/dev/null /var/run/escenic/ece-*.pid | wc -l)" == "0" ]; then
-      echo "no (No escenic pidfiles in /var/run/escenic/{ece|engine}-*.pid)"
-      exit 0
-    fi
+  if [ "$(ls 2>/dev/null /var/run/escenic/*.pid | wc -l)" == "0" ]; then
+    echo "no (No escenic pidfiles in /var/run/escenic/*.pid)"
+    exit 0
   fi
 
   echo "yes"
@@ -474,9 +472,10 @@ fi
 #
 
 if [ "$1" = "suggest" ]; then
-  for pid_base in ece engine analysis changelogd search rmi-hub ; do
-    for a in $(ls /var/run/escenic/${pid_base}-*.pid 2>/dev/null) ; do
-      ece_instance=$(basename $a .pid | sed s/^${pid_base}-//)
+  for pid_base in ece- engine- analysis- changelogd- search- rmi-hub- "" ; do
+    for a in /var/run/escenic/${pid_base}*.pid ; do
+      if [ ! -r "$a" ] ; then continue; fi
+      ece_instance=$(basename "$a" .pid | sed "s/^${pid_base}//" )
       if [[ "$instances" =~ "<$ece_instance>" ]] ; then
         echo "# Ignoring pidfile $a because it would conflict with other instances."
         echo "# This pidfile needs manual setup."

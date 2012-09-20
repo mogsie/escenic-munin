@@ -16,7 +16,7 @@ different instances of Content Engine and graphs their heaps individually.
 
 escenic_jstat_ needs to know which instance it will run on.  Since 5.1,
 ECE out of the box allows easy configuration of several instances.  These
-end up putting their pidfiles in /var/run/escenic/engine-xxx.pid.  This munin
+end up putting their pidfiles in /var/run/escenic/engine(-xxx).pid.  This munin
 plug-in suggests a set of graphs for each of the currently running instances.
 
 The plugin uses the jstat utility from the JVM which it assumes is available
@@ -106,7 +106,9 @@ other locations, etc.
                    and to locate the pidfile.
 
     pidfile      - Override name of pidfile to use. Defaults to
-                   '/var/run/escenic/engine-${ece_instance}.pid'.  If
+                   '/var/run/escenic/${ece_instance}.pid' if it exists;
+                   if it doesn't exist, it defaults to
+                   '/var/run/escenic/*-${ece_instance}.pid'.  If
                    configured manually (i.e. not suggest) this can be
                    used to use this plug-in on arbitrary JVMs.  YMMV.
 
@@ -138,9 +140,10 @@ elif [ "${MAJOR_VERSION}" -eq 1 ] ; then
 fi
   
 
+
 # Look for a pidfile, prefering engine's pidfiles.
-for a in engine ece search rmi-hub analysis changelogd ; do
-  tmp_pidfile="/var/run/escenic/${a}-${ece_instance}.pid"
+for a in "" engine- ece- search- rmi-hub- analysis- changelogd- ; do
+  tmp_pidfile="/var/run/escenic/${a}${ece_instance}.pid"
   if [ -r $tmp_pidfile ] ; then 
     break;
   fi

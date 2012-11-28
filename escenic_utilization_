@@ -62,33 +62,41 @@ where the escenic-admin web app is located.
 =cut
 
 
-graph_update=yes
-tmp_ece_instance=$(echo $(basename $0) | sed s,escenic_utilization_,,)
-ece_instance=${ece_instance:-${tmp_ece_instance}}
-if [ -z "${port}" ]; then
-  graph_info="${graph_info} In order to use this plug-in you need to configure 'env.port' in the [escenic_utilization_${ece_instance}] somewhere in /etc/munin/plugin-conf.d/"
-  graph_update=no
-fi
+common()
+{
+  graph_update=yes
+  tmp_ece_instance=$(echo $(basename $0) | sed s,escenic_utilization_,,)
+  ece_instance=${ece_instance:-${tmp_ece_instance}}
+  if [ -z "${port}" ]; then
+    . /etc/escenic/ece.conf
+    . /etc/escenic/ece-$ece_instance.conf
+    if [ -z "$appserver_port" ] ; then
+      graph_info="${graph_info} In order to use this plug-in you need to configure 'env.port' in the [escenic_utilization_${ece_instance}] somewhere in /etc/munin/plugin-conf.d/"
+      graph_update=no
+    else
+      port=$appserver_port
+    fi
+  fi
 
-if [ -z "${graphtitle}" ]; then
-  graphtitle="${ece_instance}"
-fi
+  if [ -z "${graphtitle}" ]; then
+    graphtitle="${ece_instance}"
+  fi
+}
 
 config()
 {
-  echo "graph_title $graphtitle Utilization "
+  echo "graph_title $graphtitle utilization "
   echo "graph_args --base 1000 -l 0"
   echo "graph_vlabel threads"
-  echo "graph_info The load excherted on an Escenic instance by its HTTP interfaces, counted as the number of threads. " ${graph_info}
+  echo "graph_info The number of active HTTP threads on the $graphtitle instance, which equates to \"how busy\" the instance is. ${graph_info}"
   echo "graph_category Escenic"
   echo "update ${graph_update}"
      cat <<EOM
 utilization.draw LINE1
-utilization.label Utilization
-utilization.info Snapshot of load the past two seconds. 1.0 means one thread was active.
-utilization.warning 4
-utilization.critical 50
-utilization.cdef utilization,100,/
+utilization.label Active threads
+utilization.info The number of threads actively rendering a web page as counted by top. 1.0 means one thread was active.
+utilization.warning 30
+utilization.critical 35
 
 EOM
 }
@@ -99,8 +107,14 @@ EOM
 
 if [ "$1" = "autoconf" ]; then
 
-  if [ "$(ls 2>/dev/null /var/run/escenic/ece-*.pid | wc -l)" == "0" ]; then
-    echo "no (No escenic pidfiles in /var/run/escenic/ece-*.pid)"
+  if [ ! -r "/etc/default/ece" ] ; then
+    echo "no (No /etc/default/ece)"
+    exit 0
+  fi
+
+  . /etc/default/ece
+  if [ -z "$engine_instance_list" ] ; then
+    echo "no (No engine instances configured in /etc/default/ece)"
     exit 0
   fi
 
@@ -115,13 +129,15 @@ fi
 
 if [ "$1" = "suggest" ]; then
 
-  for a in /var/run/escenic/ece-*.pid ; do
-    basename $a .pid | sed s/^ece-//
-  done
-
+  if [ -r /etc/default/ece ] ; then
+    . /etc/default/ece
+    echo $engine_instance_list
+  fi
   exit 0
 fi
 
+
+common
 
 #
 # config
@@ -135,5 +151,5 @@ fi
 # fetch
 #
 
-wget -O - -o /dev/null http://localhost:${port}/escenic-admin/top | awk 'BEGIN{a=0} /[1-9]/ { a=a+$1} END { print "utilization.value " a }'
+wget --timeout=1 -O - -o /dev/null http://localhost:${port}/escenic-admin/top | awk 'BEGIN{a=0} /[1-9]/ { a=a+$1} END { print "utilization.value " a/100 }'
 

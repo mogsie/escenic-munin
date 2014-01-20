@@ -1,0 +1,129 @@
+#!/bin/bash -e
+
+: <<=cut
+=head1 NAME
+
+escenic_files - A Munin plugin to show the number of open files used by
+Escenic Content Engine instances.
+
+=head1 APPLICABLE SYSTEMS
+
+escenic_files works with all installations of Escenic Content Engine
+5.1 and onwards.  It uses the pidfiles located in /var/run/escenic/ to
+locate different instances of Content Engine and graphs the number of
+opened files.
+
+=head1 CONFIGURATION
+
+escenic_files needs to know which instance it will run on.  Since 5.1,
+ECE out of the box allows easy configuration of several instances.  These
+end up putting their pidfiles in /var/run/escenic/xxx.pid.
+
+The plugin needs to access the /proc file system to interrogate the
+number of open files.
+
+=head1 INTERPRETATION
+
+The graph shows the number of file handles in use by all instances of
+Content Engine.
+
+=head1 MAGIC MARKERS
+
+    #%# family=manual contrib
+    #%# capabilities=autoconf suggest
+
+=head1 CONFIGURATION
+
+    ece_instance - name of instance. Defaults to output of 'suggest'
+                   The instance names is used to name the graphs.
+
+    graphtitle   - if unspecified, the graph title is prepended with the
+                   name of the instance.
+
+=cut
+
+
+common()
+{
+  graph_update=yes
+  if [ -z "${graphtitle}" ]; then
+    graphtitle="Open files"
+  fi
+}
+
+. /etc/default/ece
+allnames=$(echo $engine_instance_list $search_instance_list $analysis_instance_list | xargs -n 1 | sort | uniq)
+
+config()
+{
+  echo "graph_title $graphtitle open files"
+  echo "graph_args --base 1000 -l 0"
+  echo "graph_vlabel file handles"
+  echo "graph_info The number of open files $graphtitle instance, which equates to \"how busy\" the instance is. ${graph_info}"
+  echo "graph_category Escenic"
+  echo "update ${graph_update}"
+  . /etc/default/ece
+  allnames=$(echo $engine_instance_list $search_instance_list $analysis_instance_list | xargs -n 1 | sort | uniq)
+  for name in $allnames ; do
+
+     cat <<EOM
+$name.draw LINE1
+$name.label $name
+$name.info The number of open files by the $name instance.
+$name.warning 2500
+$name.critical 3500
+
+EOM
+  done
+}
+
+#
+# autoconf
+#
+
+if [ "$1" = "autoconf" ]; then
+
+  if [ ! -r "/etc/default/ece" ] ; then
+    echo "no (No /etc/default/ece)"
+    exit 0
+  fi
+
+  . /etc/default/ece
+  if [ -z "$engine_instance_list" ] ; then
+    echo "no (No engine instances configured in /etc/default/ece)"
+    exit 0
+  fi
+
+  echo "yes"
+  exit 0
+fi
+
+
+#
+# suggest
+#
+
+if [ "$1" = "suggest" ]; then
+  exit 0
+fi
+
+common
+
+#
+# config
+#
+if [ "$1" = "config" ]; then
+  config
+  exit 0
+fi
+
+#
+# fetch
+#
+for name in $allnames ; do
+  pidfile=/var/run/escenic/$name.pid
+  pid=$(<$pidfile)
+  echo -n $name.value' '
+  ls /proc/$pid/fd | wc -l
+done
+
